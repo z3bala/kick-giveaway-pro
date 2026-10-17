@@ -134,10 +134,10 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
     { id: 'bottom-right', label: 'Bottom Right', desc: 'Corner status' },
   ];
 
-  const layoutStyles: Array<{ id: NonNullable<OverlaySettings['layoutStyle']>; label: string; desc: string; icon: string }> = [
-    { id: 'pill', label: 'Streamer Pill', desc: 'Ultra clean floating capsule. Minimal screen footprint.', icon: '💊' },
-    { id: 'bar', label: 'Broadcast Bar', desc: 'Esports lower-third / top horizontal bar.', icon: '▬' },
-    { id: 'card', label: 'HUD Card', desc: 'Detailed gaming HUD card with structured prize box.', icon: '🎴' },
+  const layoutStyles: Array<{ id: NonNullable<OverlaySettings['layoutStyle']>; label: string; desc: string }> = [
+    { id: 'pill', label: 'Streamer Pill', desc: 'Clean floating capsule for webcam or stream corners.' },
+    { id: 'bar', label: 'Broadcast Bar', desc: 'Horizontal bar for header or lower-third placement.' },
+    { id: 'card', label: 'HUD Card', desc: 'Structured corner widget with prize and entrant details.' },
   ];
 
   // Helper for 16:9 preview positioning
@@ -468,7 +468,26 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                   }}
                 >
                   <div className="flex items-center space-x-3">
-                    <span className="text-xl">{item.icon}</span>
+                    <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 flex items-center justify-center flex-shrink-0">
+                      {item.id === 'pill' && (
+                        <div
+                          className="w-5 h-2.5 rounded-full border"
+                          style={{ borderColor: isActive ? accent : 'rgba(255,255,255,0.6)' }}
+                        />
+                      )}
+                      {item.id === 'bar' && (
+                        <div
+                          className="w-5 h-1.5 rounded-sm border"
+                          style={{ borderColor: isActive ? accent : 'rgba(255,255,255,0.6)' }}
+                        />
+                      )}
+                      {item.id === 'card' && (
+                        <div
+                          className="w-4 h-4 rounded-sm border"
+                          style={{ borderColor: isActive ? accent : 'rgba(255,255,255,0.6)' }}
+                        />
+                      )}
+                    </div>
                     <div>
                       <div className={`text-xs font-bold ${isActive ? 'text-white' : 'text-neutral-200'}`}>
                         {item.label}
