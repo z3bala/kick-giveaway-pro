@@ -22,8 +22,11 @@ services:
       - key: OVERLAY_TOKEN
         generateValue: true
       - key: DATABASE_PATH
-        value: /var/data/giveaway.db
-    disk:
-      name: giveaway-data
-      mountPath: /var/data
-      sizeGB: 1
+        value: ./data/giveaway.db
+    # Note: Render free tier does not support persistent disks.
+    # The database will persist in ./data during execution and restarts.
+    # To attach a persistent disk on paid plans, uncomment below:
+    # disk:
+    #   name: giveaway-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
