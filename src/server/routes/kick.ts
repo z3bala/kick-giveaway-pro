@@ -206,16 +206,25 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
         }
       }
 
-      const body = req.body;
-      if (eventType === 'chat.message.sent' || body.event === 'chat.message.sent' || body.content) {
+      const body = req.body || {};
+      console.log('[KickWebhook] Received incoming webhook event:', eventType || body.event, 'body keys:', Object.keys(body));
+      const payload = body.data || body;
+      const content = String(payload.content || body.content || '').trim();
+
+      if (content || eventType === 'chat.message.sent' || body.event === 'chat.message.sent') {
+        const sender = payload.sender || body.sender || {};
+        const username = sender.username || payload.username || body.username || 'kick_viewer';
+        const userId = String(sender.user_id || sender.id || payload.user_id || body.user_id || 'unknown');
+
         const inboundMsg: InboundChatMessage = {
-          id: body.message_id || body.id || `msg-${Date.now()}`,
-          userId: String(body.sender?.user_id || body.sender?.id || body.user_id || 'unknown'),
-          username: body.sender?.username || body.username || 'kick_viewer',
-          content: body.content || '',
-          timestamp: body.created_at || new Date().toISOString(),
+          id: String(payload.message_id || payload.id || body.message_id || body.id || `msg-${Date.now()}`),
+          userId,
+          username,
+          content,
+          timestamp: payload.created_at || body.created_at || new Date().toISOString(),
         };
 
+        console.log(`[KickWebhook] Chat message from @${username}: "${content}"`);
         kickBot.handleInboundMessage(inboundMsg);
       }
 

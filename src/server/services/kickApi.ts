@@ -183,23 +183,42 @@ export class KickApiClient {
     }
 
     try {
-      const res = await fetch(`${this.baseUrl}/public/v1/chat`, {
+      const payload = {
+        type: 'bot',
+        content: content.slice(0, 500),
+        broadcaster_user_id: broadcasterUserId ? Number(broadcasterUserId) : undefined,
+      };
+
+      let res = await fetch(`${this.baseUrl}/public/v1/chat`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({
-          type: 'user',
-          content: content.slice(0, 500),
-          broadcaster_user_id: broadcasterUserId ? Number(broadcasterUserId) : undefined,
-        }),
+        body: JSON.stringify(payload),
       });
+
+      if (!res.ok && res.status === 400) {
+        // Try type 'user' fallback
+        res = await fetch(`${this.baseUrl}/public/v1/chat`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({ ...payload, type: 'user' }),
+        });
+      }
 
       if (!res.ok) {
         const errText = await res.text();
-        console.error(`[KickApiClient] Send message failed (${res.status}): ${errText}`);
+        if (res.status === 401) {
+          console.warn(`[KickApiClient] Cannot send chat message (401 Unauthorized). An OAuth User Access Token with 'chat:write' scope is required. Please click 'Authorize with Kick (1-Click)' in Settings.`);
+        } else {
+          console.error(`[KickApiClient] Send message failed (${res.status}): ${errText}`);
+        }
         return false;
       }
 
