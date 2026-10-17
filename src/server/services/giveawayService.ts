@@ -103,6 +103,31 @@ export class GiveawayService {
     if (!this.activeGiveaway || this.activeGiveaway.status === 'completed') {
       this.activeGiveaway = dbOps.getActiveGiveaway(this.db);
     }
+    // Auto-seed active open giveaway on fresh database
+    if (!this.activeGiveaway) {
+      try {
+        const id = `gw-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
+        const newGw = dbOps.createGiveaway(this.db, {
+          id,
+          title: 'Live Kick Stream Giveaway',
+          prize: 'Special Gift',
+          keyword: '!join',
+          status: 'open',
+          winnerId: null,
+          winnerUsername: null,
+          createdAt: new Date().toISOString(),
+          openedAt: new Date().toISOString(),
+          closedAt: null,
+          completedAt: null,
+        });
+        dbOps.updateGiveawayStatus(this.db, id, 'open', { openedAt: new Date().toISOString() });
+        newGw.status = 'open';
+        newGw.openedAt = new Date().toISOString();
+        this.activeGiveaway = newGw;
+      } catch (err: any) {
+        console.warn('[GiveawayService] Auto-seed note:', err.message);
+      }
+    }
     if (this.activeGiveaway) {
       this.activeGiveaway.participantCount = dbOps.getActiveParticipants(this.db, this.activeGiveaway.id).length;
     }

@@ -66,7 +66,10 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
     setFeedback(null);
     try {
       await onCreateGiveaway(newTitle, newPrize, newKeyword);
-      setFeedback({ type: 'success', message: 'Giveaway created successfully.' });
+      try {
+        await onOpenEntries();
+      } catch {}
+      setFeedback({ type: 'success', message: 'Giveaway created and opened! Entries are active.' });
     } catch (err: any) {
       setFeedback({ type: 'error', message: err.message });
     } finally {
