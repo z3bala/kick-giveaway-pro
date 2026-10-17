@@ -66,7 +66,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
       const name = sampleNames[i % sampleNames.length];
       cards.push({
         id: `test-card-${i}`,
-        username: i === targetIdx ? 'WINNER_LootMaster' : name,
+        username: i === targetIdx ? 'LootMaster' : name,
         isWinner: i === targetIdx,
         avatarSeed: i * 37,
       });
@@ -78,7 +78,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
         id: 'test-winner-1',
         giveawayId: 'test-gw',
         kickUserId: 'test-user',
-        username: 'WINNER_LootMaster',
+        username: 'LootMaster',
         joinedAt: new Date().toISOString(),
         status: 'active',
       },
@@ -111,7 +111,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
     id: 'sample-winner',
     giveawayId: 'sample-gw',
     kickUserId: 'kick-user-99',
-    username: 'WINNER_LootMaster',
+    username: 'LootMaster',
     joinedAt: new Date().toISOString(),
     status: 'active' as const,
   };
