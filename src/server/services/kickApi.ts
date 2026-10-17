@@ -35,6 +35,34 @@ export class KickApiClient {
   }
 
   /**
+   * Get the authenticated Kick user profile associated with the current access token.
+   */
+  public async getAuthenticatedUser(): Promise<{ user_id: number; name: string; email?: string } | null> {
+    if (!this.accessToken) return null;
+    try {
+      const res = await fetch(`${this.baseUrl}/public/v1/users`, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Accept': 'application/json',
+        },
+      });
+      if (!res.ok) return null;
+      const json = await res.json() as any;
+      const user = json.data?.[0];
+      if (user) {
+        return {
+          user_id: Number(user.user_id),
+          name: String(user.name),
+          email: user.email,
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Request App Access Token from Kick identity server using Client Credentials flow
    */
   public async fetchTokenWithClientCredentials(): Promise<string | null> {
@@ -221,13 +249,33 @@ export class KickApiClient {
       const cleanContent = content.slice(0, 500);
       const bId = broadcasterUserId ? Number(broadcasterUserId) : 29176855;
 
-      // Determine sender type: 'user' by default for guaranteed live chat delivery
-      const primaryType = preferredType || 'user';
-      const payloadPrimary = {
+      // Determine sender type based on Kick's official API specifications:
+      // When sending as 'bot', broadcaster_user_id is ignored and Kick routes to the token owner's channel.
+      // Therefore:
+      // - If preferredType is explicitly specified, honor it.
+      // - If the token belongs to the channel owner (bId), send as 'bot' so Kick displays the official [BOT] badge.
+      // - If the token belongs to a separate user (e.g. @FrxGiveaways), send as 'user' with broadcaster_user_id to route to the channel.
+      let primaryType = preferredType;
+      if (!primaryType) {
+        try {
+          const authUser = await this.getAuthenticatedUser();
+          if (authUser && authUser.user_id === bId) {
+            primaryType = 'bot';
+          } else {
+            primaryType = 'user';
+          }
+        } catch {
+          primaryType = 'user';
+        }
+      }
+
+      const payloadPrimary: Record<string, any> = {
         type: primaryType,
         content: cleanContent,
-        broadcaster_user_id: bId,
       };
+      if (primaryType === 'user' || bId) {
+        payloadPrimary.broadcaster_user_id = bId;
+      }
 
       let res = await fetch(`${this.baseUrl}/public/v1/chat`, {
         method: 'POST',

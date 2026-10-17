@@ -16,14 +16,26 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
     const appSettings = giveawayService.getAppSettings();
 
     let channelInfo: any = null;
+    let authUser: any = null;
     try {
-      channelInfo = await kickBot.getApiClient().getChannelBySlug(baseState.channelSlug || 'frixen1');
+      const [cInfo, uInfo] = await Promise.all([
+        kickBot.getApiClient().getChannelBySlug(baseState.channelSlug || 'frixen1'),
+        kickBot.getApiClient().getAuthenticatedUser(),
+      ]);
+      channelInfo = cInfo;
+      authUser = uInfo;
     } catch {}
+
+    const isBroadcasterToken = authUser && String(authUser.user_id) === String(baseState.broadcasterId || '29176855');
 
     res.json({
       ...baseState,
       hasAccessToken: !!token,
       clientIdConfigured: !!(appSettings.kickClientId || process.env.KICK_CLIENT_ID),
+      tokenOwner: authUser?.name || null,
+      tokenOwnerId: authUser?.user_id || null,
+      isBroadcasterToken: !!isBroadcasterToken,
+      botBadgeActive: !!isBroadcasterToken,
       chatroom: channelInfo ? {
         followersMode: channelInfo.followers_mode,
         followingMinDuration: channelInfo.following_min_duration,

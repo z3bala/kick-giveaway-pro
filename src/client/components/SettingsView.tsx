@@ -440,19 +440,39 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-neutral-200 space-y-2">
-            <div className="flex items-start space-x-2.5">
-              <KeyRound className="w-4 h-4 text-[#53fc18] flex-shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold text-white block">Dedicated Bot Account Instructions:</span>
-                <span className="text-neutral-300">
-                  If your bot is a separate Kick account (not your channel account):
-                </span>
-                <ol className="list-decimal list-inside text-neutral-400 mt-1 space-y-1">
-                  <li>In your stream chat (<span className="text-[#53fc18]">kick.com/{channelSlug || 'frixen1'}</span>), type: <code className="bg-black/60 px-1.5 py-0.5 rounded text-[#53fc18]">/mod @YourBotUsername</code></li>
-                  <li>Log into <span className="text-white font-semibold">kick.com</span> with that <span className="text-[#53fc18] font-semibold">Bot Account</span> in this browser.</li>
-                  <li>Click <span className="text-[#53fc18] font-bold">Authorize with Kick (1-Click)</span> below. The bot will receive its User Access Token to announce winners in your chatroom!</li>
-                </ol>
+          {/* Kick Bot Badge vs Moderator Badge Explanation */}
+          <div className="p-4 rounded-xl bg-gradient-to-r from-[#121824] to-[#182030] border border-[#53fc18]/30 text-xs text-neutral-200 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+              <div className="flex items-center space-x-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#53fc18] animate-pulse" />
+                <span className="font-bold text-white text-sm">Kick Official [BOT] Badge Setup</span>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#53fc18]/20 text-[#53fc18] border border-[#53fc18]/40">
+                Official Kick API Spec
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              {/* Option 1: Official Bot Badge */}
+              <div className="p-3 rounded-lg bg-black/40 border border-[#53fc18]/40 space-y-1.5">
+                <div className="flex items-center space-x-1.5 text-[#53fc18] font-bold">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>To Show Official [BOT] Badge:</span>
+                </div>
+                <p className="text-[11px] text-neutral-300 leading-relaxed">
+                  Log into <strong>kick.com</strong> as your <strong>Streamer account (@{channelSlug || 'frixen1'})</strong> and click <strong>Authorize with Kick</strong> below. Per Kick's API, authorizing as the broadcaster enables your App's registered bot (@FrxGiveaways) to post directly into your stream chatroom with the green <strong>[BOT]</strong> badge!
+                </p>
+              </div>
+
+              {/* Option 2: Moderator User Mode */}
+              <div className="p-3 rounded-lg bg-black/40 border border-white/[0.1] space-y-1.5">
+                <div className="flex items-center space-x-1.5 text-blue-400 font-bold">
+                  <Shield className="w-4 h-4" />
+                  <span>Current Status: Moderator User Mode</span>
+                </div>
+                <p className="text-[11px] text-neutral-300 leading-relaxed">
+                  When authorized as @FrxGiveaways, Kick routes messages to your channel as a regular user with your channel's <strong>Moderator sword</strong> badge. Both modes write to chat and run giveaways 100%.
+                </p>
               </div>
             </div>
           </div>
