@@ -259,10 +259,11 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
       if (content || eventType === 'chat.message.sent' || body.event === 'chat.message.sent') {
         const sender = payload.sender || body.sender || {};
         const username = sender.username || payload.username || body.username || 'kick_viewer';
-        const userId = String(sender.user_id || sender.id || payload.user_id || body.user_id || 'unknown');
+        const rawUserId = sender.user_id || sender.id || payload.user_id || body.user_id;
+        const userId = rawUserId ? String(rawUserId) : `user_${String(username).toLowerCase().replace(/[^a-z0-9_]/g, '') || Date.now()}`;
 
         const inboundMsg: InboundChatMessage = {
-          id: String(payload.message_id || payload.id || body.message_id || body.id || `msg-${Date.now()}`),
+          id: String(payload.message_id || payload.id || body.message_id || body.id || `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`),
           userId,
           username,
           content,
@@ -296,7 +297,8 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
   // Public chat activity & webhook health inspect endpoint
   router.get('/activity', (req, res) => {
     try {
-      const logs = dbOps.getRecentChatLogs(giveawayService.getDb(), 20);
+      const limit = Math.min(Math.max(Number(req.query.limit) || 25, 1), 200);
+      const logs = dbOps.getRecentChatLogs(giveawayService.getDb(), limit);
       res.json({
         kickBot: kickBot.getState(),
         activeGiveaway: giveawayService.getActiveGiveaway(),

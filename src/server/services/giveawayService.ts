@@ -230,31 +230,83 @@ export class GiveawayService {
 
   // ---------------- Participant Entry Logic ----------------
 
+  /**
+   * Intelligently matches incoming chat content against giveaway keyword.
+   * Handles:
+   * - With or without "!" (e.g. !join or join matches either keyword configuration)
+   * - Case insensitivity (e.g. !JOIN, Join, JOIN)
+   * - Punctuation around keyword (e.g. !join!, !join., :!join)
+   * - Multi-word or emote attachments (e.g. "!join [emote:123]", "!join please", "enter !join")
+   */
+  public matchesKeyword(content: string, configuredKeyword: string): boolean {
+    if (!content || !configuredKeyword) return false;
+
+    const cleanContent = content.toLowerCase().trim();
+    const cleanKeyword = configuredKeyword.toLowerCase().trim();
+
+    // Base keyword stripped of leading exclamation marks or symbols
+    const baseKeyword = cleanKeyword.replace(/^[!#$/:]+/, '').trim();
+    if (!baseKeyword) return false;
+
+    // 1. Direct exact or with/without ! match
+    if (cleanContent === cleanKeyword || cleanContent === baseKeyword || cleanContent === `!${baseKeyword}`) {
+      return true;
+    }
+
+    // 2. Tokenize by whitespace
+    const tokens = cleanContent.split(/\s+/);
+    for (const rawToken of tokens) {
+      // Strip outer punctuation: e.g. "!join!" -> "join", ":!join," -> "join"
+      const strippedToken = rawToken.replace(/^[^a-z0-9]+/i, '').replace(/[^a-z0-9]+$/i, '');
+      if (strippedToken === baseKeyword) {
+        return true;
+      }
+      if (rawToken === cleanKeyword || rawToken === `!${baseKeyword}`) {
+        return true;
+      }
+    }
+
+    // 3. Word boundary regex search (for messages like "yo !join" or "!join! Good luck")
+    const escapedBase = baseKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(?:^|\\s)[!#$/:]*${escapedBase}(?:[^a-z0-9]|$)`, 'i');
+    if (regex.test(cleanContent)) {
+      return true;
+    }
+
+    return false;
+  }
+
   public handleChatMessage(msg: InboundChatMessage): boolean {
     const active = this.getActiveGiveaway();
     if (!active || active.status !== 'open') {
       return false;
     }
 
-    const content = msg.content.trim();
-    const keyword = active.keyword.toLowerCase();
+    const rawContent = (msg.content || '').trim();
+    if (!rawContent) return false;
 
-    // Check if message matches the entry keyword (e.g. "!join" or "!join please")
-    const words = content.toLowerCase().split(/\s+/);
-    const isKeywordMatch = words[0] === keyword;
+    // Check if message matches the entry keyword with maximum flexibility
+    const isKeywordMatch = this.matchesKeyword(rawContent, active.keyword);
 
     if (!isKeywordMatch) {
       return false;
     }
 
+    const rawUsername = (msg.username || 'kick_viewer').trim();
+    const cleanUsername = rawUsername.replace(/[\x00-\x1F\x7F]/g, '').trim() || 'kick_viewer';
+
+    // Safe Kick User ID: never allow duplicate collisions like "unknown"
+    let effectiveUserId = (msg.userId || '').trim();
+    if (!effectiveUserId || effectiveUserId === 'unknown' || effectiveUserId === 'undefined') {
+      effectiveUserId = `user_${cleanUsername.toLowerCase()}`;
+    }
+
     // Attempt to register entry
     const participantId = `p-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
-    const cleanUsername = msg.username.replace(/[^a-zA-Z0-9_]/g, '') || msg.username;
-
     const participant: Participant = {
       id: participantId,
       giveawayId: active.id,
-      kickUserId: msg.userId || cleanUsername.toLowerCase(),
+      kickUserId: effectiveUserId,
       username: cleanUsername,
       joinedAt: new Date().toISOString(),
       status: 'active',
@@ -268,6 +320,8 @@ export class GiveawayService {
         participant,
         totalParticipants: active.participantCount,
       });
+
+      console.log(`[Giveaway] Participant @${cleanUsername} entered giveaway "${active.title}" (total: ${active.participantCount})`);
 
       // Confirm in chat (throttled to avoid flooding)
       const now = Date.now();

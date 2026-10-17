@@ -112,8 +112,8 @@ export class KickBotService extends EventEmitter {
         this.state.channelSlug = channelInfo.slug;
       }
 
-      // Chatroom ID is either the broadcaster ID or channel ID
-      const chatroomId = channelInfo?.id || this.config.broadcasterId || '1';
+      // Chatroom ID is either the chatroom_id, channel ID, or broadcaster ID
+      const chatroomId = channelInfo?.chatroom_id || channelInfo?.id || this.config.broadcasterId || '1';
 
       // Ensure active Kick Event Subscription for chat.message.sent
       const targetBroadcasterId = this.config.broadcasterId || channelInfo?.broadcaster_user_id || '29176855';

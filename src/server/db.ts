@@ -190,16 +190,27 @@ export const dbOps = {
     participant: { id: string; giveawayId: string; kickUserId: string; username: string; joinedAt: string }
   ): boolean {
     try {
-      db.prepare(`
+      const stmt = db.prepare(`
         INSERT INTO participants (id, giveaway_id, kick_user_id, username, joined_at, status)
         VALUES (?, ?, ?, ?, ?, 'active')
-      `).run(
+        ON CONFLICT(giveaway_id, kick_user_id) DO UPDATE SET
+          status = 'active',
+          username = excluded.username,
+          joined_at = excluded.joined_at
+        WHERE status = 'removed'
+      `);
+
+      const result = stmt.run(
         participant.id,
         participant.giveawayId,
         participant.kickUserId,
         participant.username,
         participant.joinedAt
-      );
+      ) as any;
+
+      if (result && typeof result.changes === 'number' && result.changes === 0) {
+        return false; // Already entered
+      }
 
       // Increment count
       db.prepare(`

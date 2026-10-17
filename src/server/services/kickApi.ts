@@ -129,7 +129,7 @@ export class KickApiClient {
   /**
    * Get channel info by slug (broadcaster_user_id, slug, etc.)
    */
-  public async getChannelBySlug(slug: string): Promise<{ broadcaster_user_id?: string; slug: string; id?: string } | null> {
+  public async getChannelBySlug(slug: string): Promise<{ broadcaster_user_id?: string; slug: string; id?: string; chatroom_id?: string } | null> {
     if (!this.accessToken) {
       // If no token is provided, fall back to Kick's public channel endpoint
       try {
@@ -145,6 +145,7 @@ export class KickApiClient {
           broadcaster_user_id: String(data.user_id || data.id || ''),
           slug: data.slug || slug,
           id: String(data.id || ''),
+          chatroom_id: data.chatroom?.id ? String(data.chatroom.id) : (data.chatroom_id ? String(data.chatroom_id) : undefined),
         };
       } catch {
         return null;
@@ -172,6 +173,7 @@ export class KickApiClient {
         broadcaster_user_id: String(channel.broadcaster_user_id || channel.id || ''),
         slug: channel.slug || slug,
         id: String(channel.id || ''),
+        chatroom_id: channel.chatroom?.id ? String(channel.chatroom.id) : (channel.chatroom_id ? String(channel.chatroom_id) : undefined),
       };
     } catch (err: any) {
       console.error('[KickApiClient] Failed to fetch channel info:', err.message);
@@ -294,9 +296,14 @@ export class KickApiClient {
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          event: 'chat.message.sent',
-          method: 'webhook',
           broadcaster_user_id: Number(broadcasterUserId),
+          events: [
+            {
+              name: 'chat.message.sent',
+              version: 1,
+            },
+          ],
+          method: 'webhook',
         }),
       });
 
