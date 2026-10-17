@@ -197,9 +197,9 @@ export class KickApiClient {
       const cleanContent = content.slice(0, 500);
       const bId = broadcasterUserId ? Number(broadcasterUserId) : undefined;
 
-      // Primary attempt: type 'user' (Confirmed working Kick public API chat specification)
-      const payloadUser = {
-        type: 'user',
+      // Primary attempt: type 'bot' (Kick Developer API specification for bot badge display)
+      const payloadBot = {
+        type: 'bot',
         content: cleanContent,
         broadcaster_user_id: bId,
       };
@@ -211,27 +211,27 @@ export class KickApiClient {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify(payloadUser),
+        body: JSON.stringify(payloadBot),
       });
 
-      // Fallback: If type 'user' is rejected, also attempt type 'bot'
+      // Fallback: If type 'bot' is rejected by Kick, try type 'user'
       if (!res.ok) {
-        const payloadBot = {
-          type: 'bot',
+        const payloadUser = {
+          type: 'user',
           content: cleanContent,
           broadcaster_user_id: bId,
         };
-        const resBot = await fetch(`${this.baseUrl}/public/v1/chat`, {
+        const resUser = await fetch(`${this.baseUrl}/public/v1/chat`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${this.accessToken}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-          body: JSON.stringify(payloadBot),
+          body: JSON.stringify(payloadUser),
         });
-        if (resBot.ok) {
-          res = resBot;
+        if (resUser.ok) {
+          res = resUser;
         }
       }
 
