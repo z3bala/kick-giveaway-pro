@@ -22,6 +22,8 @@ services:
         value: 01M55MY622GWQP6EA2HSJ4CJTJ
       - key: KICK_CLIENT_SECRET
         value: 4ba04b149cf41010573ec24b3d433cd32fc713b0afc80795ddf1315f933b6179
+      - key: APP_URL
+        value: https://kick-giveaway-pro.onrender.com
       - key: KICK_ACCESS_TOKEN
         sync: false
       - key: ADMIN_SECRET

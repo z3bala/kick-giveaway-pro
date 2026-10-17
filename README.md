@@ -60,8 +60,8 @@ Features a real-time streamer dashboard, automated Kick chat message listener, c
                                      │                │
             ┌────────────────────────▼───┐        ┌───┴────────────────────────┐
             │     STREAMER DASHBOARD     │        │     OBS BROWSER SOURCE     │
-            │     (http://localhost:3001)│        │   (http://localhost:3001   │
-            │                            │        │         /overlay)          │
+            │(https://kick-giveaway-pro. │        │(https://kick-giveaway-pro. │
+            │      onrender.com)         │        │   onrender.com/overlay)    │
             │  • Overview & Stat Cards   │        │                            │
             │  • Lifecycle Controls      │        │  • Transparent Background  │
             │  • Live Participants Table │        │  • Live Status Badge       │
@@ -112,8 +112,8 @@ Features a real-time streamer dashboard, automated Kick chat message listener, c
    ```
 
 5. **Access the application:**
-   - **Streamer Dashboard:** [http://localhost:3001](http://localhost:3001)
-   - **OBS Studio Overlay:** [http://localhost:3001/overlay](http://localhost:3001/overlay)
+   - **Streamer Dashboard:** [https://kick-giveaway-pro.onrender.com](https://kick-giveaway-pro.onrender.com)
+   - **OBS Studio Overlay:** [https://kick-giveaway-pro.onrender.com/overlay](https://kick-giveaway-pro.onrender.com/overlay)
 
 ---
 
@@ -125,7 +125,7 @@ To enable your bot to send chat messages, confirm entries, and announce winners 
 1. Navigate to the official **Kick Developer Portal**: [https://dev.kick.com](https://dev.kick.com)
 2. Log in with your Kick streamer or bot account.
 3. Click **Create Application**.
-4. Set the **Redirect URL** to your server URL (e.g., `http://localhost:3001/api/kick/callback` or your cloud URL).
+4. Set the **Redirect URL** to: `https://kick-giveaway-pro.onrender.com/api/kick/callback`
 5. Copy your **Client ID** and **Client Secret**.
 
 ### 2. Request Permissions (Scopes)
@@ -139,7 +139,7 @@ Generate an OAuth access token with the `chat:write` and `channel:read` scopes.
 
 ### 4. Configure in Dashboard
 1. Open the **Settings** tab in the Kick Giveaway Pro dashboard.
-2. Enter your **Channel Slug** (e.g., `yourchannel`).
+2. Enter your **Channel Slug** (e.g., `frixen1`).
 3. Enter your **Client ID**, **Client Secret**, and **OAuth Access Token**.
 4. Click **Save Configuration**.
 5. Click **Connect Now** to establish the chat stream connection.
@@ -156,7 +156,7 @@ Follow these steps to add the giveaway overlay to OBS Studio:
 2. In the **Sources** panel, click the **`+`** icon and select **Browser**.
 3. Name the source (e.g., `Kick Giveaway Overlay`) and click **OK**.
 4. Configure the Browser Source settings:
-   - **URL**: `http://localhost:3001/overlay?token=streamer-obs-overlay-key-2026` (replace with your cloud URL when deployed).
+   - **URL**: `https://kick-giveaway-pro.onrender.com/overlay?token=streamer-obs-overlay-key-2026`
    - **Width**: `1920`
    - **Height**: `1080`
    - **FPS**: `60`

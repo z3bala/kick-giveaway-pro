@@ -32,7 +32,9 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
   const [copied, setCopied] = useState(false);
 
   const getOverlayUrl = () => {
-    const origin = window.location.origin;
+    const origin = typeof window !== 'undefined' && !window.location.origin.includes('localhost')
+      ? window.location.origin
+      : 'https://kick-giveaway-pro.onrender.com';
     const tokenParam = overlayToken ? `?token=${encodeURIComponent(overlayToken)}` : '';
     return `${origin}/overlay${tokenParam}`;
   };

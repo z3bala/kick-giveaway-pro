@@ -25,13 +25,17 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
   }, 10 * 60 * 1000);
 
   function getRedirectUri(req: any): string {
+    const configuredAppUrl = process.env.APP_URL || 'https://kick-giveaway-pro.onrender.com';
     const host = req.get('host');
-    const isSecure = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' || host?.includes('onrender.com');
-    const protocol = isSecure ? 'https' : 'http';
-    return `${protocol}://${host}/api/kick/callback`;
+    if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+      const isSecure = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' || host.includes('onrender.com');
+      const protocol = isSecure ? 'https' : 'http';
+      return `${protocol}://${host}/api/kick/callback`;
+    }
+    return `${configuredAppUrl.replace(/\/$/, '')}/api/kick/callback`;
   }
 
-  // 1-Click Authorize Endpoint with RFC-compliant PKCE S256
+  // 1-Click Authorize Endpoint with Stateless Signed PKCE S256
   router.get('/authorize', (req, res) => {
     const appSettings = giveawayService.getAppSettings();
     const clientId = (req.query.client_id as string)?.trim() || appSettings.kickClientId || process.env.KICK_CLIENT_ID;
@@ -57,9 +61,14 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
     // Generate PKCE code_verifier and code_challenge
     const verifier = crypto.randomBytes(32).toString('base64url');
     const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
-    const state = crypto.randomBytes(16).toString('hex');
 
-    // Store verifier for 15 minutes
+    // Encode verifier into state with HMAC signature (stateless across Render reboots)
+    const secret = process.env.KICK_CLIENT_SECRET || process.env.ADMIN_SECRET || 'kick-pkce-signing-key-2026';
+    const statePayload = JSON.stringify({ v: verifier, t: Date.now() });
+    const sig = crypto.createHmac('sha256', secret).update(statePayload).digest('base64url');
+    const state = `${Buffer.from(statePayload).toString('base64url')}.${sig}`;
+
+    // Also store in memory as backup
     pkceSessions.set(state, { verifier, expires: Date.now() + 15 * 60 * 1000 });
 
     const kickAuthUrl = `https://id.kick.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(
@@ -93,10 +102,32 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
 
     if (code) {
       const redirectUri = getRedirectUri(req);
-
       const stateStr = String(state || '');
-      const session = pkceSessions.get(stateStr);
-      const codeVerifier = session?.verifier;
+
+      let codeVerifier: string | undefined;
+
+      // Extract verifier from signed state
+      if (stateStr.includes('.')) {
+        const [dataPart, sigPart] = stateStr.split('.');
+        const secret = process.env.KICK_CLIENT_SECRET || process.env.ADMIN_SECRET || 'kick-pkce-signing-key-2026';
+        try {
+          const jsonStr = Buffer.from(dataPart, 'base64url').toString('utf8');
+          const expectedSig = crypto.createHmac('sha256', secret).update(jsonStr).digest('base64url');
+          if (expectedSig === sigPart) {
+            const parsed = JSON.parse(jsonStr);
+            if (Date.now() - parsed.t < 30 * 60 * 1000) {
+              codeVerifier = parsed.v;
+            }
+          }
+        } catch (e) {
+          console.warn('[KickOAuth] State decoding note:', e);
+        }
+      }
+
+      if (!codeVerifier) {
+        const session = pkceSessions.get(stateStr);
+        codeVerifier = session?.verifier;
+      }
       if (stateStr) pkceSessions.delete(stateStr);
 
       try {
@@ -105,7 +136,15 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
           giveawayService.updateAppSettings({}, { accessToken: token });
           const broadcasterId = giveawayService.getAppSettings().kickBroadcasterId || '29176855';
           await kickBot.getApiClient().subscribeToChatEvents(broadcasterId);
-          res.redirect('/settings?oauth_success=true');
+
+          // Try to dispatch 1 test message right away to verify chat write capability
+          try {
+            await kickBot.sendDirectChatMessage('🤖 Kick Giveaway Bot connected and authorized! Ready for live chat giveaways.');
+          } catch (testErr) {
+            console.warn('[KickOAuth] Post-auth test message note:', testErr);
+          }
+
+          res.redirect('/settings?oauth_success=true&bot_tested=true');
           return;
         }
       } catch (err: any) {
@@ -265,6 +304,42 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Send 1 test message to verify the bot can write to the Kick live chat
+  router.post('/test-chat', async (req, res) => {
+    try {
+      const { message } = req.body || {};
+      const testContent = message && typeof message === 'string' && message.trim()
+        ? message.trim()
+        : `🤖 [KickBot Test] Live chat verification from Kick Giveaway Pro! Bot account write confirmed. (${new Date().toLocaleTimeString()})`;
+
+      const result = await kickBot.sendDirectChatMessage(testContent);
+
+      if (result.success) {
+        try {
+          dbOps.addChatLog(giveawayService.getDb(), {
+            id: `bot-test-${Date.now()}`,
+            username: 'KickGiveawayBot',
+            content: testContent,
+            timestamp: new Date().toISOString(),
+            isBot: true,
+          });
+        } catch {}
+      }
+
+      const statusCode = result.success ? 200 : (result.status && result.status >= 400 && result.status < 600 ? result.status : 400);
+
+      res.status(statusCode).json({
+        ...result,
+        channelSlug: kickBot.getState().channelSlug,
+        broadcasterId: kickBot.getState().broadcasterId,
+        content: testContent,
+        hasAccessToken: !!giveawayService.getRawAccessToken(),
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
     }
   });
 

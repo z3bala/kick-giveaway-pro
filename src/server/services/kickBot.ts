@@ -313,12 +313,32 @@ export class KickBotService extends EventEmitter {
           content: nextMessage,
           timestamp: new Date().toISOString(),
           isBot: true,
-          deliveredViaApi: sent,
+          deliveredViaApi: sent.success,
+          error: sent.error,
         });
       }
     } finally {
       this.isProcessingQueue = false;
     }
+  }
+
+  /**
+   * Send 1 direct message to verify the bot can write to the Kick live chat
+   */
+  public async sendDirectChatMessage(content: string): Promise<{ success: boolean; status?: number; error?: string; data?: any }> {
+    const broadcasterId = this.config.broadcasterId || this.state.broadcasterId || '29176855';
+    const result = await this.apiClient.sendChatMessage(broadcasterId, content);
+    this.lastOutboundTime = Date.now();
+    this.emit('botReplySent', {
+      id: `bot-${Date.now()}`,
+      username: 'KickGiveawayBot',
+      content,
+      timestamp: new Date().toISOString(),
+      isBot: true,
+      deliveredViaApi: result.success,
+      error: result.error,
+    });
+    return result;
   }
 
   /**

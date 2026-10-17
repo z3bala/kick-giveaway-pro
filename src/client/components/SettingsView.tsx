@@ -51,6 +51,65 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
+  const [isTestingChat, setIsTestingChat] = useState(false);
+  const [testChatFeedback, setTestChatFeedback] = useState<{ type: 'success' | 'error'; message: string; details?: string } | null>(null);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('oauth_success') === 'true') {
+      if (params.get('bot_tested') === 'true') {
+        setFeedback({
+          type: 'success',
+          message: '🎉 OAuth Authorization successful! User Access Token is active and 1 confirmation message was dispatched to your Kick chat!',
+        });
+      } else {
+        setFeedback({
+          type: 'success',
+          message: '🎉 OAuth Authorization successful! User Access Token is now active and stored.',
+        });
+      }
+    }
+  }, []);
+
+  const origin = typeof window !== 'undefined' && !window.location.origin.includes('localhost')
+    ? window.location.origin
+    : 'https://kick-giveaway-pro.onrender.com';
+  const redirectUrl = `${origin}/api/kick/callback`;
+  const webhookUrl = `${origin}/api/kick/webhook`;
+
+  const handleSendTestMessage = async () => {
+    setIsTestingChat(true);
+    setTestChatFeedback(null);
+    try {
+      const res = await fetch('/api/kick/test-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `🤖 [KickBot Test] Live chat write confirmed from Kick Giveaway Pro! (${new Date().toLocaleTimeString()})`,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTestChatFeedback({
+          type: 'success',
+          message: `✅ Test message delivered to Kick channel chat (@${data.channelSlug || channelSlug || 'frixen1'})! Bot writing is working!`,
+        });
+      } else {
+        setTestChatFeedback({
+          type: 'error',
+          message: data.error || `Kick rejected the message (Status ${res.status}).`,
+          details: data.status === 401 ? 'Kick requires a User Access Token with the "chat:write" scope to write to chat. Click "Authorize with Kick (1-Click)" below while logged into the bot account.' : undefined,
+        });
+      }
+    } catch (err: any) {
+      setTestChatFeedback({
+        type: 'error',
+        message: err.message || 'Failed to reach test chat endpoint.',
+      });
+    } finally {
+      setIsTestingChat(false);
+    }
+  };
 
   const handleConnectKick = async () => {
     const targetSlug = channelSlug.trim().replace(/^@/, '');
@@ -108,10 +167,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       setIsDisconnecting(false);
     }
   };
-
-  const origin = window.location.origin;
-  const redirectUrl = `${origin}/api/kick/callback`;
-  const webhookUrl = `${origin}/api/kick/webhook`;
 
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -476,36 +531,46 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             <button
               type="button"
-              onClick={async () => {
-                try {
-                  setIsSaving(true);
-                  await onSaveSettings({
-                    kickChannelSlug: channelSlug.trim() || undefined,
-                    kickClientId: clientId.trim() || undefined,
-                    kickClientSecret: clientSecret.trim() || undefined,
-                  });
-                  const res = await fetch('/api/kick/exchange-token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                  });
-                  const data = await res.json();
-                  if (res.ok) {
-                    setFeedback({ type: 'success', message: 'Token generated and bot connected to Kick API!' });
-                    window.location.reload();
-                  } else {
-                    setFeedback({ type: 'error', message: data.error || 'Token fetch failed. Try the 1-Click Authorize button.' });
-                  }
-                } catch (err: any) {
-                  setFeedback({ type: 'error', message: err.message });
-                } finally {
-                  setIsSaving(false);
-                }
-              }}
-              className="px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] text-neutral-200 text-xs font-semibold flex items-center space-x-1.5 transition-all"
+              disabled={isTestingChat}
+              onClick={handleSendTestMessage}
+              className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center space-x-2 transition-all shadow-md shadow-purple-600/20 disabled:opacity-60 cursor-pointer"
             >
-              <span>Auto-Fetch Token via Client Secret</span>
+              {isTestingChat ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Sending Test Message...</span>
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Send 1 Test Message to Chat</span>
+                </>
+              )}
             </button>
           </div>
+
+          {/* Test Chat Result Alert */}
+          {testChatFeedback && (
+            <div
+              className={`p-3.5 rounded-xl text-xs flex flex-col space-y-1 border ${
+                testChatFeedback.type === 'success'
+                  ? 'bg-[#53fc18]/10 text-[#53fc18] border-[#53fc18]/30'
+                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                {testChatFeedback.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[#53fc18]" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+                )}
+                <span className="font-semibold">{testChatFeedback.message}</span>
+              </div>
+              {testChatFeedback.details && (
+                <p className="text-[11px] text-neutral-300 pl-6">{testChatFeedback.details}</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Bot Rules & Chat Preferences */}

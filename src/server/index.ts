@@ -107,12 +107,13 @@ if (isMainModule || process.env.NODE_ENV !== 'test') {
   const { server, kickBot } = createApp();
 
   server.listen(PORT, HOST, () => {
+    const appUrl = process.env.APP_URL || 'https://kick-giveaway-pro.onrender.com';
     console.log(`\n======================================================`);
     console.log(`🚀 KICK GIVEAWAY PRO — Server Running`);
-    console.log(`📡 URL: http://localhost:${PORT}`);
-    console.log(`🎮 Dashboard: http://localhost:${PORT}`);
-    console.log(`🎬 OBS Overlay: http://localhost:${PORT}/overlay`);
-    console.log(`🔌 Mode: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📡 URL: ${appUrl}`);
+    console.log(`🎮 Dashboard: ${appUrl}`);
+    console.log(`🎬 OBS Overlay: ${appUrl}/overlay`);
+    console.log(`🔌 Mode: ${process.env.NODE_ENV || 'production'}`);
     console.log(`======================================================\n`);
 
     // Initiate Kick Bot connection if channel is specified

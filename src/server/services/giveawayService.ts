@@ -62,21 +62,29 @@ export class GiveawayService {
       adminProtected: !!process.env.ADMIN_SECRET,
     });
 
-    if (process.env.KICK_CLIENT_ID) {
-      this.appSettings.kickClientId = process.env.KICK_CLIENT_ID;
+    // Load persisted secrets from SQLite so they survive restarts
+    const persistedToken = dbOps.getSetting<string>(this.db, 'kick_access_token', '') || process.env.KICK_ACCESS_TOKEN || '';
+    const persistedSecret = dbOps.getSetting<string>(this.db, 'kick_client_secret', '') || process.env.KICK_CLIENT_SECRET || '';
+    const persistedClientId = dbOps.getSetting<string>(this.db, 'kick_client_id', '') || process.env.KICK_CLIENT_ID || '';
+
+    if (persistedClientId) {
+      this.appSettings.kickClientId = persistedClientId;
+      process.env.KICK_CLIENT_ID = persistedClientId;
     }
-    if (process.env.KICK_CLIENT_SECRET) {
+    if (persistedSecret) {
       this.appSettings.kickClientSecretMasked = '••••••••';
+      process.env.KICK_CLIENT_SECRET = persistedSecret;
     }
-    if (process.env.KICK_ACCESS_TOKEN) {
+    if (persistedToken) {
       this.appSettings.kickAccessTokenMasked = '••••••••';
+      process.env.KICK_ACCESS_TOKEN = persistedToken;
     }
 
-    // Initialize KickBot credentials from env if present
+    // Initialize KickBot credentials from env and persistent db
     this.kickBot.updateConfig({
-      clientId: process.env.KICK_CLIENT_ID,
-      clientSecret: process.env.KICK_CLIENT_SECRET,
-      accessToken: process.env.KICK_ACCESS_TOKEN,
+      clientId: this.appSettings.kickClientId || process.env.KICK_CLIENT_ID,
+      clientSecret: persistedSecret || process.env.KICK_CLIENT_SECRET,
+      accessToken: persistedToken || process.env.KICK_ACCESS_TOKEN,
     });
 
     // Wire KickBot incoming chat messages
@@ -129,6 +137,10 @@ export class GiveawayService {
 
   public getAppSettings(): AppSettings {
     return { ...this.appSettings };
+  }
+
+  public getRawAccessToken(): string {
+    return process.env.KICK_ACCESS_TOKEN || dbOps.getSetting<string>(this.db, 'kick_access_token', '') || '';
   }
 
   // ---------------- Giveaway Lifecycle Operations ----------------
@@ -404,15 +416,21 @@ export class GiveawayService {
 
     if (secretValues?.clientSecret) {
       process.env.KICK_CLIENT_SECRET = secretValues.clientSecret;
+      dbOps.saveSetting(this.db, 'kick_client_secret', secretValues.clientSecret);
       updated.kickClientSecretMasked = '••••••••';
     }
     if (secretValues?.accessToken) {
       process.env.KICK_ACCESS_TOKEN = secretValues.accessToken;
+      dbOps.saveSetting(this.db, 'kick_access_token', secretValues.accessToken);
       updated.kickAccessTokenMasked = '••••••••';
     }
     if (secretValues?.adminSecret) {
       process.env.ADMIN_SECRET = secretValues.adminSecret;
+      dbOps.saveSetting(this.db, 'admin_secret', secretValues.adminSecret);
       updated.adminProtected = true;
+    }
+    if (settings.kickClientId) {
+      dbOps.saveSetting(this.db, 'kick_client_id', settings.kickClientId);
     }
 
     this.appSettings = updated;

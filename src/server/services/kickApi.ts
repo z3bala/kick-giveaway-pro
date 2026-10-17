@@ -1,6 +1,13 @@
 /**
  * Client for interacting with the official Kick Developer REST API (https://docs.kick.com).
  */
+export interface SendChatMessageResult {
+  success: boolean;
+  status?: number;
+  error?: string;
+  data?: any;
+}
+
 export class KickApiClient {
   private baseUrl = 'https://api.kick.com';
 
@@ -175,18 +182,24 @@ export class KickApiClient {
   /**
    * Send a chat message into a Kick channel chatroom.
    * Target endpoint: POST /public/v1/chat
+   * Requires OAuth User Access Token with 'chat:write' scope.
    */
-  public async sendChatMessage(broadcasterUserId: string, content: string): Promise<boolean> {
+  public async sendChatMessage(broadcasterUserId: string, content: string): Promise<SendChatMessageResult> {
     if (!this.accessToken) {
-      console.warn('[KickApiClient] Cannot send chat message: No Kick access token configured.');
-      return false;
+      const err = 'No Kick access token configured. Please click "Authorize with Kick (1-Click)" in Settings with your bot account.';
+      console.warn(`[KickApiClient] Cannot send chat message: ${err}`);
+      return { success: false, status: 401, error: err };
     }
 
     try {
-      const payload = {
-        type: 'bot',
-        content: content.slice(0, 500),
-        broadcaster_user_id: broadcasterUserId ? Number(broadcasterUserId) : undefined,
+      const cleanContent = content.slice(0, 500);
+      const bId = broadcasterUserId ? Number(broadcasterUserId) : undefined;
+
+      // Primary attempt: type 'user' (Kick standard public API chat specification)
+      const payloadUser = {
+        type: 'user',
+        content: cleanContent,
+        broadcaster_user_id: bId,
       };
 
       let res = await fetch(`${this.baseUrl}/public/v1/chat`, {
@@ -196,36 +209,50 @@ export class KickApiClient {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payloadUser),
       });
 
-      if (!res.ok && res.status === 400) {
-        // Try type 'user' fallback
-        res = await fetch(`${this.baseUrl}/public/v1/chat`, {
+      // If rejected with 400 or 422, try secondary format: type 'bot'
+      if (!res.ok && (res.status === 400 || res.status === 422)) {
+        const payloadBot = {
+          type: 'bot',
+          content: cleanContent,
+          broadcaster_user_id: bId,
+        };
+        const resBot = await fetch(`${this.baseUrl}/public/v1/chat`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${this.accessToken}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-          body: JSON.stringify({ ...payload, type: 'user' }),
+          body: JSON.stringify(payloadBot),
         });
+        if (resBot.ok) {
+          res = resBot;
+        }
       }
+
+      const resText = await res.text();
+      let resJson: any = null;
+      try { resJson = JSON.parse(resText); } catch {}
 
       if (!res.ok) {
-        const errText = await res.text();
+        let errorMsg = `Kick API returned HTTP ${res.status}: ${resText}`;
         if (res.status === 401) {
-          console.warn(`[KickApiClient] Cannot send chat message (401 Unauthorized). An OAuth User Access Token with 'chat:write' scope is required. Please click 'Authorize with Kick (1-Click)' in Settings.`);
+          errorMsg = 'Kick returned 401 Unauthorized. The Kick Access Token is missing the `chat:write` scope or expired. Please click "Authorize with Kick (1-Click)" in Settings with your bot account.';
+          console.warn(`[KickApiClient] ${errorMsg}`);
         } else {
-          console.error(`[KickApiClient] Send message failed (${res.status}): ${errText}`);
+          console.error(`[KickApiClient] Send message failed (${res.status}): ${resText}`);
         }
-        return false;
+        return { success: false, status: res.status, error: errorMsg, data: resJson };
       }
 
-      return true;
+      console.log(`[KickApiClient] Successfully sent chat message to broadcaster ${broadcasterUserId}: "${cleanContent.slice(0, 60)}..."`);
+      return { success: true, status: res.status, data: resJson };
     } catch (err: any) {
       console.error('[KickApiClient] Network error sending chat message:', err.message);
-      return false;
+      return { success: false, error: err.message };
     }
   }
 
