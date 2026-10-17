@@ -103,31 +103,6 @@ export class GiveawayService {
     if (!this.activeGiveaway || this.activeGiveaway.status === 'completed') {
       this.activeGiveaway = dbOps.getActiveGiveaway(this.db);
     }
-    // Auto-seed active open giveaway on fresh database
-    if (!this.activeGiveaway) {
-      try {
-        const id = `gw-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
-        const newGw = dbOps.createGiveaway(this.db, {
-          id,
-          title: 'Live Kick Stream Giveaway',
-          prize: 'Special Gift',
-          keyword: '!join',
-          status: 'open',
-          winnerId: null,
-          winnerUsername: null,
-          createdAt: new Date().toISOString(),
-          openedAt: new Date().toISOString(),
-          closedAt: null,
-          completedAt: null,
-        });
-        dbOps.updateGiveawayStatus(this.db, id, 'open', { openedAt: new Date().toISOString() });
-        newGw.status = 'open';
-        newGw.openedAt = new Date().toISOString();
-        this.activeGiveaway = newGw;
-      } catch (err: any) {
-        console.warn('[GiveawayService] Auto-seed note:', err.message);
-      }
-    }
     if (this.activeGiveaway) {
       this.activeGiveaway.participantCount = dbOps.getActiveParticipants(this.db, this.activeGiveaway.id).length;
     }
@@ -171,8 +146,12 @@ export class GiveawayService {
   // ---------------- Giveaway Lifecycle Operations ----------------
 
   public createGiveaway(title: string, prize: string, keyword: string): Giveaway {
-    if (this.activeGiveaway && ['open', 'drawing'].includes(this.activeGiveaway.status)) {
-      throw new Error('An active giveaway is currently running. Please close or complete it first.');
+    const now = new Date().toISOString();
+    // Auto-archive any previous active or draft giveaway cleanly
+    try {
+      this.db.prepare(`UPDATE giveaways SET status = 'completed', completed_at = ? WHERE status IN ('draft', 'open', 'closed', 'drawing')`).run(now);
+    } catch (e: any) {
+      console.warn('[GiveawayService] Note archiving previous giveaways:', e.message);
     }
 
     const id = `gw-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
@@ -184,7 +163,7 @@ export class GiveawayService {
       status: 'draft',
       winnerId: null,
       winnerUsername: null,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
       openedAt: null,
       closedAt: null,
       completedAt: null,
@@ -476,6 +455,12 @@ export class GiveawayService {
   }
 
   public resetGiveaway(): void {
+    const now = new Date().toISOString();
+    try {
+      this.db.prepare(`UPDATE giveaways SET status = 'completed', completed_at = ? WHERE status IN ('draft', 'open', 'closed', 'drawing')`).run(now);
+    } catch (e: any) {
+      console.warn('[GiveawayService] Reset note:', e.message);
+    }
     this.activeGiveaway = null;
     this.activeDraw = null;
     this.broadcaster.emitEvent('giveaway.reset', {});

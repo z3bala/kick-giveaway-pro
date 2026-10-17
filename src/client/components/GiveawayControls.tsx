@@ -47,6 +47,7 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
   const [newTitle, setNewTitle] = useState('Kick Stream Giveaway');
   const [newPrize, setNewPrize] = useState('$50 Steam Gift Card');
   const [newKeyword, setNewKeyword] = useState('!join');
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [customKeyword, setCustomKeyword] = useState('');
   const [isEditingKeyword, setIsEditingKeyword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,6 +70,7 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
       try {
         await onOpenEntries();
       } catch {}
+      setShowCreateForm(false);
       setFeedback({ type: 'success', message: 'Giveaway created and opened! Entries are active.' });
     } catch (err: any) {
       setFeedback({ type: 'error', message: err.message });
@@ -90,12 +92,33 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
 
   return (
     <div className="space-y-6 max-w-4xl pb-12">
-      {/* Page Header */}
-      <div>
-        <h2 className="text-xl font-bold text-white tracking-tight">Giveaway Controls</h2>
-        <p className="text-xs text-neutral-400 mt-1">
-          Manage your active giveaway, open or close viewer registration, and roll the CS2 case-opening animation.
-        </p>
+      {/* Page Header with Clear Cache & Reset Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-white tracking-tight">Giveaway Controls</h2>
+          <p className="text-xs text-neutral-400 mt-1">
+            Manage your active giveaway, open or close viewer registration, and roll the CS2 case-opening animation.
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          {giveaway && !showCreateForm && (
+            <button
+              onClick={() => setShowCreateForm(true)}
+              className="px-3.5 py-2 rounded-xl bg-[#53fc18] hover:bg-[#45d914] text-black font-bold text-xs flex items-center space-x-1.5 transition-all shadow-md shadow-[#53fc18]/20"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <span>New Giveaway</span>
+            </button>
+          )}
+          <button
+            onClick={onOpenResetConfirmModal}
+            className="px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold flex items-center space-x-1.5 transition-all"
+            title="Clear all active giveaway cache and reset state"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Clear Cache & Reset</span>
+          </button>
+        </div>
       </div>
 
       {feedback && (
@@ -115,7 +138,7 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
         </div>
       )}
 
-      {giveaway ? (
+      {giveaway && !showCreateForm ? (
         <div className="space-y-6">
           {/* Active Giveaway Control Card */}
           <div className="p-6 rounded-2xl glass-card space-y-6">
@@ -335,15 +358,33 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
       ) : (
         /* Create Giveaway Form */
         <div className="p-6 rounded-2xl glass-card max-w-xl">
-          <div className="flex items-center space-x-3 mb-5">
-            <div className="w-9 h-9 rounded-xl bg-[#53fc18]/15 border border-[#53fc18]/30 flex items-center justify-center text-[#53fc18]">
-              <Plus className="w-5 h-5 stroke-[2.5]" />
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-xl bg-[#53fc18]/15 border border-[#53fc18]/30 flex items-center justify-center text-[#53fc18]">
+                <Plus className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Create New Giveaway</h3>
+                <p className="text-xs text-neutral-400">Set your prize, title, and the chat entry keyword.</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-base font-bold text-white">Create New Giveaway</h3>
-              <p className="text-xs text-neutral-400">Set your prize, title, and the chat entry keyword.</p>
-            </div>
+            {giveaway && (
+              <button
+                type="button"
+                onClick={() => setShowCreateForm(false)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/[0.08] hover:bg-white/[0.15] text-neutral-300 transition-colors"
+              >
+                Back to Active
+              </button>
+            )}
           </div>
+
+          {giveaway && (
+            <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>Creating this will automatically archive your previous giveaway and open this one immediately.</span>
+            </div>
+          )}
 
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
