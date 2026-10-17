@@ -18,8 +18,12 @@ services:
         sync: false
       - key: KICK_BROADCASTER_ID
         sync: false
+      - key: KICK_CLIENT_ID
+        value: 01M55MY622GWQP6EA2HSJ4CJTJ
+      - key: KICK_CLIENT_SECRET
+        value: 1f638443bd2203d9708bf40626be7a73a68ace83e471e35bfe4584913ab386d7
       - key: KICK_ACCESS_TOKEN
-        sync: false
+        value: NWQZYTFMZJATMZHHNS0ZMTUYLTLKYZITMMEYOTQZZDA4YTK5
       - key: ADMIN_SECRET
         generateValue: true
       - key: OVERLAY_TOKEN

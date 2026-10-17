@@ -62,6 +62,23 @@ export class GiveawayService {
       adminProtected: !!process.env.ADMIN_SECRET,
     });
 
+    if (process.env.KICK_CLIENT_ID) {
+      this.appSettings.kickClientId = process.env.KICK_CLIENT_ID;
+    }
+    if (process.env.KICK_CLIENT_SECRET) {
+      this.appSettings.kickClientSecretMasked = '••••••••';
+    }
+    if (process.env.KICK_ACCESS_TOKEN) {
+      this.appSettings.kickAccessTokenMasked = '••••••••';
+    }
+
+    // Initialize KickBot credentials from env if present
+    this.kickBot.updateConfig({
+      clientId: process.env.KICK_CLIENT_ID,
+      clientSecret: process.env.KICK_CLIENT_SECRET,
+      accessToken: process.env.KICK_ACCESS_TOKEN,
+    });
+
     // Wire KickBot incoming chat messages
     this.kickBot.on('chatMessage', (msg: InboundChatMessage) => {
       this.handleChatMessage(msg);

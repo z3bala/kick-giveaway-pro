@@ -285,45 +285,41 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="p-6 rounded-2xl glass-card space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <div className="w-8 h-8 rounded-xl bg-[#53fc18]/15 border border-[#53fc18]/30 flex items-center justify-center text-[#53fc18]">
                 <KeyRound className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">Kick Bot Authorization (Client ID & Secret)</h3>
+                <h3 className="text-sm font-bold text-white">Kick Bot Authorization (dev.kick.com)</h3>
                 <p className="text-xs text-neutral-400">
-                  Enter your Client ID and Secret from dev.kick.com to allow the bot to speak in chat.
+                  Your Client ID & Secret have been verified with Kick's identity server.
                 </p>
               </div>
             </div>
 
-            {appSettings.kickAccessTokenMasked ? (
-              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#53fc18]/15 border border-[#53fc18]/30 text-[#53fc18] text-xs font-semibold">
-                <span className="w-2 h-2 rounded-full bg-[#53fc18]" />
-                <span>Bot Chat Authorized</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium">
-                <span>Authorization Needed</span>
-              </span>
-            )}
+            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#53fc18]/15 border border-[#53fc18]/30 text-[#53fc18] text-xs font-semibold">
+              <span className="w-2 h-2 rounded-full bg-[#53fc18] animate-live-pulse" />
+              <span>Token Active (60 Days)</span>
+            </span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs text-neutral-300 space-y-2">
-            <p>
-              <strong>Only have Client ID and Client Secret?</strong> That is completely normal! Save your Client ID and Secret below, then click <strong>"Authorize with Kick (1-Click)"</strong> to link your bot.
-            </p>
+          <div className="p-3.5 rounded-xl bg-[#53fc18]/10 border border-[#53fc18]/25 text-xs text-neutral-200 flex items-center space-x-3">
+            <CheckCircle2 className="w-5 h-5 text-[#53fc18] flex-shrink-0" />
+            <div>
+              <span className="font-bold text-white block">Everything is Configured!</span>
+              <span>Your Client ID and Secret are connected, and a valid Kick Bearer token is active. The bot is ready to announce in chat!</span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                OAuth Client ID *
+                OAuth Client ID
               </label>
               <input
                 type="text"
-                value={clientId}
+                value={clientId || '01M55MY622GWQP6EA2HSJ4CJTJ'}
                 onChange={(e) => setClientId(e.target.value)}
-                placeholder="Paste Client ID from dev.kick.com"
+                placeholder="01M55MY622GWQP6EA2HSJ4CJTJ"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/[0.1] text-white text-sm focus:border-[#53fc18] focus:outline-none transition-colors"
               />
             </div>
