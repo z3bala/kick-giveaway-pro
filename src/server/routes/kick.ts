@@ -14,6 +14,26 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
     res.json(kickBot.getState());
   });
 
+  // Who am I (authenticated Kick user verification)
+  router.get('/whoami', async (req, res) => {
+    try {
+      const token = giveawayService.getRawAccessToken();
+      if (!token) {
+        return res.status(401).json({ error: 'No access token configured.' });
+      }
+      const response = await fetch('https://api.kick.com/public/v1/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+      const data = await response.json();
+      res.json({ status: response.status, data });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   const pkceSessions = new Map<string, { verifier: string; expires: number }>();
 
   // Clean expired PKCE sessions every 10 mins
