@@ -243,4 +243,47 @@ export class KickApiClient {
       return null;
     }
   }
+
+  /**
+   * Automatically subscribe to official Kick chat.message.sent webhook events
+   */
+  public async subscribeToChatEvents(broadcasterUserId: string | number): Promise<boolean> {
+    // If we don't have a token, attempt to fetch one via client credentials first
+    if (!this.accessToken && this.clientId && this.clientSecret) {
+      await this.fetchTokenWithClientCredentials();
+    }
+
+    if (!this.accessToken) {
+      console.warn('[KickApiClient] Cannot subscribe to events: No access token available.');
+      return false;
+    }
+
+    try {
+      const res = await fetch(`${this.baseUrl}/public/v1/events/subscriptions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          event: 'chat.message.sent',
+          method: 'webhook',
+          broadcaster_user_id: Number(broadcasterUserId),
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        console.log(`[KickApiClient] Active webhook subscription confirmed for broadcaster ${broadcasterUserId} (chat.message.sent)!`);
+        return true;
+      } else {
+        console.warn(`[KickApiClient] Event subscription notice (${res.status}):`, data);
+        return false;
+      }
+    } catch (err: any) {
+      console.error('[KickApiClient] Failed to register event subscription:', err.message);
+      return false;
+    }
+  }
 }

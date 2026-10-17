@@ -102,6 +102,8 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
         const token = await kickBot.getApiClient().exchangeAuthCode(String(code), redirectUri, codeVerifier);
         if (token) {
           giveawayService.updateAppSettings({}, { accessToken: token });
+          const broadcasterId = giveawayService.getAppSettings().kickBroadcasterId || '29176855';
+          await kickBot.getApiClient().subscribeToChatEvents(broadcasterId);
           res.redirect('/settings?oauth_success=true');
           return;
         }

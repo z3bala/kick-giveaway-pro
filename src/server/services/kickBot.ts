@@ -115,6 +115,14 @@ export class KickBotService extends EventEmitter {
       // Chatroom ID is either the broadcaster ID or channel ID
       const chatroomId = channelInfo?.id || this.config.broadcasterId || '1';
 
+      // Ensure active Kick Event Subscription for chat.message.sent
+      const targetBroadcasterId = this.config.broadcasterId || channelInfo?.broadcaster_user_id || '29176855';
+      if (targetBroadcasterId) {
+        this.apiClient.subscribeToChatEvents(targetBroadcasterId).catch((err) => {
+          console.warn('[KickBot] Auto-subscription notice:', err.message);
+        });
+      }
+
       // Step 2: Attempt connection to Kick's WebSocket chat gateway
       if (this.ws) {
         try { this.ws.close(); } catch {}
