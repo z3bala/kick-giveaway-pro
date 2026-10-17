@@ -4,6 +4,7 @@ import type { KickBotService, InboundChatMessage } from '../services/kickBot.js'
 import type { GiveawayService } from '../services/giveawayService.js';
 import { requireAdminAuth } from '../middleware/auth.js';
 import { SimulateChatSchema } from '../../shared/schemas.js';
+import { dbOps } from '../db.js';
 
 export function createKickRouter(kickBot: KickBotService, giveawayService: GiveawayService): Router {
   const router = Router();
@@ -231,6 +232,18 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
 
         console.log(`[KickWebhook] Chat message from @${username}: "${content}"`);
         kickBot.handleInboundMessage(inboundMsg);
+
+        try {
+          dbOps.addChatLog(giveawayService.getDb(), {
+            id: inboundMsg.id,
+            username,
+            content,
+            timestamp: inboundMsg.timestamp,
+            isBot: false,
+          });
+        } catch (dbErr: any) {
+          console.warn('[KickWebhook] Could not log chat to DB:', dbErr.message);
+        }
       }
 
       // Acknowledge receipt to Kick servers with 200 OK
@@ -238,6 +251,20 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
     } catch (err: any) {
       console.error('[KickWebhook] Error processing webhook:', err.message);
       res.status(400).json({ error: 'Webhook processing error' });
+    }
+  });
+
+  // Public chat activity & webhook health inspect endpoint
+  router.get('/activity', (req, res) => {
+    try {
+      const logs = dbOps.getRecentChatLogs(giveawayService.getDb(), 20);
+      res.json({
+        kickBot: kickBot.getState(),
+        activeGiveaway: giveawayService.getActiveGiveaway(),
+        recentMessages: logs,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 

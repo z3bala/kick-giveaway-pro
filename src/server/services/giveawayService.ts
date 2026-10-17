@@ -91,15 +91,26 @@ export class GiveawayService {
 
   // ---------------- State Synchronization ----------------
 
+  public getActiveGiveaway(): Giveaway | null {
+    if (!this.activeGiveaway || this.activeGiveaway.status === 'completed') {
+      this.activeGiveaway = dbOps.getActiveGiveaway(this.db);
+    }
+    if (this.activeGiveaway) {
+      this.activeGiveaway.participantCount = dbOps.getActiveParticipants(this.db, this.activeGiveaway.id).length;
+    }
+    return this.activeGiveaway;
+  }
+
   public getStateSnapshot(): StateSyncPayload {
-    const participants = this.activeGiveaway
-      ? dbOps.getParticipants(this.db, this.activeGiveaway.id)
+    const active = this.getActiveGiveaway();
+    const participants = active
+      ? dbOps.getParticipants(this.db, active.id)
       : [];
 
     const recentHistory = dbOps.getGiveawayHistory(this.db, 15);
 
     return {
-      giveaway: this.activeGiveaway,
+      giveaway: active,
       participants,
       kickBot: this.kickBot.getState(),
       overlaySettings: this.overlaySettings,
@@ -108,8 +119,8 @@ export class GiveawayService {
     };
   }
 
-  public getActiveGiveaway(): Giveaway | null {
-    return this.activeGiveaway;
+  public getDb(): DatabaseSync {
+    return this.db;
   }
 
   public getOverlaySettings(): OverlaySettings {
@@ -208,12 +219,13 @@ export class GiveawayService {
   // ---------------- Participant Entry Logic ----------------
 
   public handleChatMessage(msg: InboundChatMessage): boolean {
-    if (!this.activeGiveaway || this.activeGiveaway.status !== 'open') {
+    const active = this.getActiveGiveaway();
+    if (!active || active.status !== 'open') {
       return false;
     }
 
     const content = msg.content.trim();
-    const keyword = this.activeGiveaway.keyword.toLowerCase();
+    const keyword = active.keyword.toLowerCase();
 
     // Check if message matches the entry keyword (e.g. "!join" or "!join please")
     const words = content.toLowerCase().split(/\s+/);
@@ -229,7 +241,7 @@ export class GiveawayService {
 
     const participant: Participant = {
       id: participantId,
-      giveawayId: this.activeGiveaway.id,
+      giveawayId: active.id,
       kickUserId: msg.userId || cleanUsername.toLowerCase(),
       username: cleanUsername,
       joinedAt: new Date().toISOString(),
@@ -239,17 +251,17 @@ export class GiveawayService {
     const added = dbOps.addParticipant(this.db, participant);
 
     if (added) {
-      this.activeGiveaway.participantCount += 1;
+      active.participantCount += 1;
       this.broadcaster.emitEvent('participant.joined', {
         participant,
-        totalParticipants: this.activeGiveaway.participantCount,
+        totalParticipants: active.participantCount,
       });
 
       // Confirm in chat (throttled to avoid flooding)
       const now = Date.now();
       if (now - this.lastJoinNotificationTime > 2000) {
         this.lastJoinNotificationTime = now;
-        this.kickBot.queueChatReply(`✅ @${participant.username} entered the giveaway! (${this.activeGiveaway.participantCount} entrants)`);
+        this.kickBot.queueChatReply(`✅ @${participant.username} entered the giveaway! (${active.participantCount} entrants)`);
       }
 
       return true;

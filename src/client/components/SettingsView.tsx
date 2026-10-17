@@ -382,11 +382,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#53fc18]/10 border border-[#53fc18]/25 text-xs text-neutral-200 flex items-center space-x-3">
-            <CheckCircle2 className="w-5 h-5 text-[#53fc18] flex-shrink-0" />
-            <div>
-              <span className="font-bold text-white block">Everything is Configured!</span>
-              <span>Your Client ID and Secret are connected, and a valid Kick Bearer token is active. The bot is ready to announce in chat!</span>
+          <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.1] text-xs text-neutral-200 space-y-2">
+            <div className="flex items-start space-x-2.5">
+              <KeyRound className="w-4 h-4 text-[#53fc18] flex-shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-white block">Dedicated Bot Account Instructions:</span>
+                <span className="text-neutral-300">
+                  If your bot is a separate Kick account (not your channel account):
+                </span>
+                <ol className="list-decimal list-inside text-neutral-400 mt-1 space-y-1">
+                  <li>In your stream chat (<span className="text-[#53fc18]">kick.com/{channelSlug || 'frixen1'}</span>), type: <code className="bg-black/60 px-1.5 py-0.5 rounded text-[#53fc18]">/mod @YourBotUsername</code></li>
+                  <li>Log into <span className="text-white font-semibold">kick.com</span> with that <span className="text-[#53fc18] font-semibold">Bot Account</span> in this browser.</li>
+                  <li>Click <span className="text-[#53fc18] font-bold">Authorize with Kick (1-Click)</span> below. The bot will receive its User Access Token to announce winners in your chatroom!</li>
+                </ol>
+              </div>
             </div>
           </div>
 
