@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+/* Custom smooth dark scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0b0e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #222634;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #394157;
+}
+
+/* Standalone Overlay Mode: 100% transparent background for OBS Studio */
+body.overlay-mode,
+html.overlay-mode {
+  background-color: transparent !important;
+  background: transparent !important;
+  overflow: hidden !important;
+  user-select: none;
+}
+
+/* Glowing text & box effects */
+.glow-accent {
+  box-shadow: 0 0 25px -4px var(--accent-glow, rgba(225, 29, 72, 0.45));
+}
+
+.glow-amber {
+  box-shadow: 0 0 25px -4px rgba(245, 158, 11, 0.45);
+}
+
+.glow-kick {
+  box-shadow: 0 0 20px -3px rgba(83, 252, 24, 0.35);
+}
+
+/* Reticle line pulse */
+@keyframes reticlePulse {
+  0%, 100% {
+    opacity: 0.9;
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+  50% {
+    opacity: 0.6;
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+}
+
+.animate-reticle {
+  animation: reticlePulse 1.8s infinite ease-in-out;
+}

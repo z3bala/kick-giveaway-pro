@@ -1,0 +1,300 @@
+import { DatabaseSync } from 'node:sqlite';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import type { Giveaway, Participant, OverlaySettings, AppSettings } from '../shared/types.js';
+
+let dbInstance: DatabaseSync | null = null;
+
+export function getDatabase(customPath?: string): DatabaseSync {
+  if (dbInstance) {
+    return dbInstance;
+  }
+
+  const dbPath = customPath || process.env.DATABASE_PATH || './data/giveaway.db';
+
+  if (dbPath !== ':memory:') {
+    const dir = path.dirname(dbPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  }
+
+  dbInstance = new DatabaseSync(dbPath);
+  initDatabase(dbInstance);
+  return dbInstance;
+}
+
+export function closeDatabase(): void {
+  if (dbInstance) {
+    dbInstance.close();
+    dbInstance = null;
+  }
+}
+
+export function initDatabase(db: DatabaseSync): void {
+  db.exec(`
+    PRAGMA foreign_keys = ON;
+
+    CREATE TABLE IF NOT EXISTS giveaways (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      prize TEXT NOT NULL,
+      keyword TEXT NOT NULL,
+      status TEXT NOT NULL,
+      winner_id TEXT,
+      winner_username TEXT,
+      participant_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      opened_at TEXT,
+      closed_at TEXT,
+      completed_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS participants (
+      id TEXT PRIMARY KEY,
+      giveaway_id TEXT NOT NULL,
+      kick_user_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      joined_at TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      UNIQUE(giveaway_id, kick_user_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_participants_giveaway 
+      ON participants (giveaway_id, status);
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_logs (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      content TEXT NOT NULL,
+      timestamp TEXT NOT NULL,
+      is_bot INTEGER NOT NULL DEFAULT 0
+    );
+  `);
+}
+
+// ---------------- Database Access Operations ----------------
+
+export const dbOps = {
+  // Giveaways
+  getActiveGiveaway(db: DatabaseSync): Giveaway | null {
+    const row = db.prepare(`
+      SELECT * FROM giveaways 
+      WHERE status IN ('draft', 'open', 'closed', 'drawing')
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `).get() as any;
+
+    if (!row) return null;
+    return mapGiveawayRow(row);
+  },
+
+  getGiveawayById(db: DatabaseSync, id: string): Giveaway | null {
+    const row = db.prepare(`SELECT * FROM giveaways WHERE id = ?`).get(id) as any;
+    if (!row) return null;
+    return mapGiveawayRow(row);
+  },
+
+  createGiveaway(db: DatabaseSync, giveaway: Omit<Giveaway, 'participantCount'>): Giveaway {
+    db.prepare(`
+      INSERT INTO giveaways (id, title, prize, keyword, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      giveaway.id,
+      giveaway.title,
+      giveaway.prize,
+      giveaway.keyword,
+      giveaway.status,
+      giveaway.createdAt
+    );
+
+    return {
+      ...giveaway,
+      winnerId: null,
+      winnerUsername: null,
+      participantCount: 0,
+      openedAt: null,
+      closedAt: null,
+      completedAt: null,
+    };
+  },
+
+  updateGiveawayStatus(
+    db: DatabaseSync,
+    id: string,
+    status: Giveaway['status'],
+    timestamps?: { openedAt?: string; closedAt?: string; completedAt?: string }
+  ): void {
+    if (timestamps?.openedAt) {
+      db.prepare(`UPDATE giveaways SET status = ?, opened_at = ? WHERE id = ?`).run(status, timestamps.openedAt, id);
+    } else if (timestamps?.closedAt) {
+      db.prepare(`UPDATE giveaways SET status = ?, closed_at = ? WHERE id = ?`).run(status, timestamps.closedAt, id);
+    } else if (timestamps?.completedAt) {
+      db.prepare(`UPDATE giveaways SET status = ?, completed_at = ? WHERE id = ?`).run(status, timestamps.completedAt, id);
+    } else {
+      db.prepare(`UPDATE giveaways SET status = ? WHERE id = ?`).run(status, id);
+    }
+  },
+
+  setGiveawayWinner(db: DatabaseSync, id: string, winnerId: string, winnerUsername: string, completedAt: string): void {
+    db.prepare(`
+      UPDATE giveaways 
+      SET status = 'completed', winner_id = ?, winner_username = ?, completed_at = ?
+      WHERE id = ?
+    `).run(winnerId, winnerUsername, completedAt, id);
+  },
+
+  updateGiveawayKeyword(db: DatabaseSync, id: string, keyword: string): void {
+    db.prepare(`UPDATE giveaways SET keyword = ? WHERE id = ?`).run(keyword, id);
+  },
+
+  getGiveawayHistory(db: DatabaseSync, limit = 50): Giveaway[] {
+    const rows = db.prepare(`
+      SELECT * FROM giveaways 
+      ORDER BY created_at DESC 
+      LIMIT ?
+    `).all(limit) as any[];
+
+    return rows.map(mapGiveawayRow);
+  },
+
+  // Participants
+  getParticipants(db: DatabaseSync, giveawayId: string): Participant[] {
+    const rows = db.prepare(`
+      SELECT * FROM participants 
+      WHERE giveaway_id = ? 
+      ORDER BY joined_at ASC
+    `).all(giveawayId) as any[];
+
+    return rows.map(mapParticipantRow);
+  },
+
+  getActiveParticipants(db: DatabaseSync, giveawayId: string): Participant[] {
+    const rows = db.prepare(`
+      SELECT * FROM participants 
+      WHERE giveaway_id = ? AND status = 'active'
+      ORDER BY joined_at ASC
+    `).all(giveawayId) as any[];
+
+    return rows.map(mapParticipantRow);
+  },
+
+  addParticipant(
+    db: DatabaseSync,
+    participant: { id: string; giveawayId: string; kickUserId: string; username: string; joinedAt: string }
+  ): boolean {
+    try {
+      db.prepare(`
+        INSERT INTO participants (id, giveaway_id, kick_user_id, username, joined_at, status)
+        VALUES (?, ?, ?, ?, ?, 'active')
+      `).run(
+        participant.id,
+        participant.giveawayId,
+        participant.kickUserId,
+        participant.username,
+        participant.joinedAt
+      );
+
+      // Increment count
+      db.prepare(`
+        UPDATE giveaways 
+        SET participant_count = (SELECT COUNT(*) FROM participants WHERE giveaway_id = ? AND status = 'active')
+        WHERE id = ?
+      `).run(participant.giveawayId, participant.giveawayId);
+
+      return true;
+    } catch (err: any) {
+      if (err.message && err.message.includes('UNIQUE constraint failed')) {
+        return false; // Already entered
+      }
+      throw err;
+    }
+  },
+
+  removeParticipant(db: DatabaseSync, giveawayId: string, participantId: string): boolean {
+    const result = db.prepare(`
+      UPDATE participants 
+      SET status = 'removed' 
+      WHERE id = ? AND giveaway_id = ?
+    `).run(participantId, giveawayId);
+
+    if (result.changes > 0) {
+      db.prepare(`
+        UPDATE giveaways 
+        SET participant_count = (SELECT COUNT(*) FROM participants WHERE giveaway_id = ? AND status = 'active')
+        WHERE id = ?
+      `).run(giveawayId, giveawayId);
+      return true;
+    }
+    return false;
+  },
+
+  // Settings
+  getSetting<T>(db: DatabaseSync, key: string, defaultValue: T): T {
+    const row = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(key) as any;
+    if (!row) return defaultValue;
+    try {
+      return JSON.parse(row.value) as T;
+    } catch {
+      return row.value as unknown as T;
+    }
+  },
+
+  saveSetting(db: DatabaseSync, key: string, value: any): void {
+    const strVal = typeof value === 'string' ? value : JSON.stringify(value);
+    db.prepare(`
+      INSERT INTO settings (key, value) VALUES (?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `).run(key, strVal);
+  },
+
+  // Chat Logs
+  addChatLog(db: DatabaseSync, log: { id: string; username: string; content: string; timestamp: string; isBot: boolean }): void {
+    db.prepare(`
+      INSERT INTO chat_logs (id, username, content, timestamp, is_bot)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(log.id, log.username, log.content, log.timestamp, log.isBot ? 1 : 0);
+  },
+
+  getRecentChatLogs(db: DatabaseSync, limit = 50): any[] {
+    return db.prepare(`
+      SELECT * FROM chat_logs 
+      ORDER BY timestamp DESC 
+      LIMIT ?
+    `).all(limit) as any[];
+  }
+};
+
+function mapGiveawayRow(row: any): Giveaway {
+  return {
+    id: row.id,
+    title: row.title,
+    prize: row.prize,
+    keyword: row.keyword,
+    status: row.status,
+    winnerId: row.winner_id,
+    winnerUsername: row.winner_username,
+    participantCount: Number(row.participant_count || 0),
+    createdAt: row.created_at,
+    openedAt: row.opened_at,
+    closedAt: row.closed_at,
+    completedAt: row.completed_at,
+  };
+}
+
+function mapParticipantRow(row: any): Participant {
+  return {
+    id: row.id,
+    giveawayId: row.giveaway_id,
+    kickUserId: row.kick_user_id,
+    username: row.username,
+    joinedAt: row.joined_at,
+    status: row.status,
+  };
+}

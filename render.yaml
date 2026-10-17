@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: kick-giveaway-pro
+    env: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: KICK_CHANNEL_SLUG
+        sync: false
+      - key: KICK_BROADCASTER_ID
+        sync: false
+      - key: KICK_ACCESS_TOKEN
+        sync: false
+      - key: ADMIN_SECRET
+        generateValue: true
+      - key: OVERLAY_TOKEN
+        generateValue: true
+      - key: DATABASE_PATH
+        value: /var/data/giveaway.db
+    disk:
+      name: giveaway-data
+      mountPath: /var/data
+      sizeGB: 1
