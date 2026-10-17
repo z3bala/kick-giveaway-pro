@@ -12,7 +12,7 @@ interface WinnerCardProps {
 export const WinnerCard: React.FC<WinnerCardProps> = ({
   winner,
   giveaway,
-  accentColor = '#e63946',
+  accentColor = '#53fc18',
 }) => {
   useEffect(() => {
     try {

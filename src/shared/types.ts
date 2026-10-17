@@ -62,6 +62,8 @@ export interface OverlaySettings {
   showCount: boolean;
   showRecentTicker: boolean;
   scale: number;
+  position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right' | 'center';
+  layoutStyle?: 'pill' | 'bar' | 'card';
 }
 
 export interface AppSettings {

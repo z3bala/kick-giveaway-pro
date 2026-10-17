@@ -16,7 +16,7 @@ export const NameRoll: React.FC<NameRollProps> = ({
   durationSec = 7.5,
   soundEnabled = true,
   soundVolume = 0.8,
-  accentColor = '#e63946',
+  accentColor = '#53fc18',
   onComplete,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);

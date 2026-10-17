@@ -33,6 +33,8 @@ export const UpdateOverlaySettingsSchema = z.object({
   showCount: z.boolean().optional(),
   showRecentTicker: z.boolean().optional(),
   scale: z.number().min(0.5).max(2).optional(),
+  position: z.enum(['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right', 'center']).optional(),
+  layoutStyle: z.enum(['pill', 'bar', 'card']).optional(),
 });
 
 export const UpdateAppSettingsSchema = z.object({

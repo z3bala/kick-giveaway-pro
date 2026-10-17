@@ -10,6 +10,11 @@ import {
   Layers,
   Palette,
   Sliders,
+  Layout,
+  Maximize2,
+  Sparkles,
+  Eye,
+  SlidersHorizontal,
 } from 'lucide-react';
 import type { OverlaySettings, DrawAnimationData } from '../../shared/types.js';
 import { NameRoll } from '../overlay/NameRollRoll.js';
@@ -30,6 +35,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
   const [testMode, setTestMode] = useState<'badge' | 'roll' | 'winner'>('badge');
   const [testDrawData, setTestDrawData] = useState<DrawAnimationData | null>(null);
   const [copied, setCopied] = useState(false);
+  const [previewBg, setPreviewBg] = useState<'studio' | 'game' | 'grid'>('studio');
 
   const getOverlayUrl = () => {
     const origin = typeof window !== 'undefined' && !window.location.origin.includes('localhost')
@@ -111,29 +117,75 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
   };
 
   const colorPresets = [
-    { label: 'Kick Neon Green', hex: '#53fc18' },
+    { label: 'Kick Neon Green (Default)', hex: '#53fc18' },
+    { label: 'Electric Cyan', hex: '#00f0ff' },
     { label: 'Covert Crimson', hex: '#e63946' },
     { label: 'Gold Amber', hex: '#f59e0b' },
     { label: 'Classified Violet', hex: '#8b5cf6' },
-    { label: 'Electric Blue', hex: '#3b82f6' },
     { label: 'Pure White', hex: '#ffffff' },
   ];
 
+  const positions: Array<{ id: NonNullable<OverlaySettings['position']>; label: string; desc: string }> = [
+    { id: 'top-left', label: 'Top Left', desc: 'Over webcam / chat' },
+    { id: 'top-center', label: 'Top Center', desc: 'Broadcast header' },
+    { id: 'top-right', label: 'Top Right', desc: 'Streamer classic' },
+    { id: 'bottom-left', label: 'Bottom Left', desc: 'Above minimap' },
+    { id: 'bottom-center', label: 'Bottom Center', desc: 'Lower third bar' },
+    { id: 'bottom-right', label: 'Bottom Right', desc: 'Corner status' },
+  ];
+
+  const layoutStyles: Array<{ id: NonNullable<OverlaySettings['layoutStyle']>; label: string; desc: string; icon: string }> = [
+    { id: 'pill', label: 'Streamer Pill', desc: 'Ultra clean floating capsule. Minimal screen footprint.', icon: '💊' },
+    { id: 'bar', label: 'Broadcast Bar', desc: 'Esports lower-third / top horizontal bar.', icon: '▬' },
+    { id: 'card', label: 'HUD Card', desc: 'Detailed gaming HUD card with structured prize box.', icon: '🎴' },
+  ];
+
+  // Helper for 16:9 preview positioning
+  const getPreviewPosClass = (pos: string = 'top-right') => {
+    switch (pos) {
+      case 'top-left':
+        return 'top-4 left-4 items-start justify-start';
+      case 'top-center':
+        return 'top-4 left-1/2 -translate-x-1/2 items-center justify-start';
+      case 'top-right':
+        return 'top-4 right-4 items-end justify-start';
+      case 'bottom-left':
+        return 'bottom-4 left-4 items-start justify-end';
+      case 'bottom-center':
+        return 'bottom-4 left-1/2 -translate-x-1/2 items-center justify-end';
+      case 'bottom-right':
+        return 'bottom-4 right-4 items-end justify-end';
+      default:
+        return 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 items-center justify-center';
+    }
+  };
+
+  const previewPosClass = getPreviewPosClass(settings.position || 'top-right');
+  const accent = settings.accentColor || '#53fc18';
+
   return (
     <div className="space-y-6 max-w-5xl pb-12">
-      {/* Header */}
+      {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-tight">OBS Overlay Studio</h2>
+          <div className="flex items-center space-x-2.5">
+            <h2 className="text-xl font-bold text-white tracking-tight">OBS Overlay Studio</h2>
+            <span
+              className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider"
+              style={{ backgroundColor: `${accent}20`, color: accent, border: `1px solid ${accent}40` }}
+            >
+              1080P TRANSPARENT
+            </span>
+          </div>
           <p className="text-xs text-neutral-400 mt-1">
-            Customize colors, test the CS-style unboxing roulette, and copy your OBS Browser Source link.
+            Arrange position for your streamer HUD, pick layout styles, and copy your browser source URL.
           </p>
         </div>
 
         <div className="flex items-center space-x-2.5">
           <button
             onClick={copyUrl}
-            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all border shadow-sm ${
               copied
                 ? 'bg-[#53fc18] text-black border-[#53fc18]'
                 : 'bg-white/[0.06] text-neutral-200 border-white/[0.08] hover:bg-white/[0.12] hover:text-white'
@@ -156,7 +208,8 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
             href={getOverlayUrl()}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#53fc18] hover:bg-[#45d914] text-black transition-all shadow-sm flex items-center space-x-1.5"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-black transition-all shadow-sm flex items-center space-x-1.5"
+            style={{ backgroundColor: accent }}
           >
             <span>Open Overlay</span>
             <ExternalLink className="w-3.5 h-3.5" />
@@ -164,30 +217,62 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
         </div>
       </div>
 
-      {/* 16:9 Canvas Monitor */}
+      {/* 16:9 Canvas Monitor & State Switcher */}
       <div className="p-6 rounded-2xl glass-card space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Tv className="w-4 h-4 text-[#53fc18]" />
-            <span className="text-xs font-semibold text-white">
-              Live Preview (16:9 1080p Stream)
-            </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Left: Viewport Info & BG Toggle */}
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <Tv className="w-4 h-4" style={{ color: accent }} />
+              <span className="text-xs font-semibold text-white">
+                Live 16:9 Stream Monitor
+              </span>
+            </div>
+
+            <div className="flex items-center bg-black/40 p-0.5 rounded-lg border border-white/[0.06] text-[11px]">
+              <button
+                onClick={() => setPreviewBg('studio')}
+                className={`px-2 py-0.5 rounded transition-all ${
+                  previewBg === 'studio' ? 'bg-white/[0.12] text-white font-medium' : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                Studio Slate
+              </button>
+              <button
+                onClick={() => setPreviewBg('game')}
+                className={`px-2 py-0.5 rounded transition-all ${
+                  previewBg === 'game' ? 'bg-white/[0.12] text-white font-medium' : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                Simulated Game HUD
+              </button>
+              <button
+                onClick={() => setPreviewBg('grid')}
+                className={`px-2 py-0.5 rounded transition-all ${
+                  previewBg === 'grid' ? 'bg-white/[0.12] text-white font-medium' : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                Alpha Transparent
+              </button>
+            </div>
           </div>
 
+          {/* Right: State Preview Switcher */}
           <div className="flex items-center space-x-1 bg-white/[0.04] p-1 rounded-xl border border-white/[0.06] text-xs">
             <button
               onClick={() => setTestMode('badge')}
               className={`px-3 py-1 rounded-lg font-medium transition-all ${
-                testMode === 'badge' ? 'bg-white/[0.1] text-white shadow-sm' : 'text-neutral-400 hover:text-white'
+                testMode === 'badge' ? 'bg-white/[0.12] text-white shadow-sm' : 'text-neutral-400 hover:text-white'
               }`}
             >
-              Stream Badge
+              Live Badge ({settings.position || 'top-right'})
             </button>
             <button
               onClick={startTestRoll}
               className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center space-x-1.5 ${
-                testMode === 'roll' ? 'bg-[#53fc18] text-black font-semibold' : 'text-neutral-400 hover:text-white'
+                testMode === 'roll' ? 'text-black font-semibold shadow-sm' : 'text-neutral-400 hover:text-white'
               }`}
+              style={{ backgroundColor: testMode === 'roll' ? accent : 'transparent' }}
             >
               <Play className="w-3 h-3 fill-current" />
               <span>Test CS2 Roll</span>
@@ -195,59 +280,219 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
             <button
               onClick={() => setTestMode('winner')}
               className={`px-3 py-1 rounded-lg font-medium transition-all ${
-                testMode === 'winner' ? 'bg-white/[0.1] text-white shadow-sm' : 'text-neutral-400 hover:text-white'
+                testMode === 'winner' ? 'bg-white/[0.12] text-white shadow-sm' : 'text-neutral-400 hover:text-white'
               }`}
             >
-              Winner Card
+              Winner Celebration
             </button>
           </div>
         </div>
 
-        {/* Display Box */}
-        <div className="relative w-full aspect-video rounded-xl border border-white/[0.08] bg-[#07090f] overflow-hidden flex items-center justify-center shadow-2xl">
-          <div className="absolute top-3 left-3 text-[10px] font-mono text-neutral-600 uppercase pointer-events-none">
-            OBS BROWSER SOURCE • 1920x1080
+        {/* 16:9 Display Frame */}
+        <div
+          className="relative w-full aspect-video rounded-xl border border-white/[0.08] overflow-hidden shadow-2xl select-none"
+          style={{
+            backgroundColor: previewBg === 'studio' ? '#07090f' : undefined,
+            backgroundImage:
+              previewBg === 'grid'
+                ? 'linear-gradient(45deg, #121622 25%, transparent 25%), linear-gradient(-45deg, #121622 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #121622 75%), linear-gradient(-45deg, transparent 75%, #121622 75%)'
+                : previewBg === 'game'
+                ? 'radial-gradient(ellipse at center, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.95) 100%), linear-gradient(135deg, #090d16 0%, #161e31 100%)'
+                : undefined,
+            backgroundSize: previewBg === 'grid' ? '20px 20px' : undefined,
+            backgroundPosition: previewBg === 'grid' ? '0 0, 0 10px, 10px -10px, -10px 0px' : undefined,
+          }}
+        >
+          {/* Simulated Game HUD elements if game mode is toggled */}
+          {previewBg === 'game' && (
+            <div className="absolute inset-0 pointer-events-none opacity-20 flex flex-col justify-between p-4 font-mono text-[10px] text-neutral-400">
+              <div className="flex justify-between items-center">
+                <div className="w-16 h-16 rounded-full border border-white/30 flex items-center justify-center">
+                  MINIMAP
+                </div>
+                <div className="text-right">
+                  ROUND 14/30 • 1:42
+                </div>
+              </div>
+              <div className="flex justify-between items-end">
+                <div className="bg-white/10 px-3 py-1 rounded">
+                  +100 HP | 100 AP
+                </div>
+                <div className="bg-white/10 px-3 py-1 rounded">
+                  AK-47 | 30/90
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Canvas Metadata Overlay */}
+          <div className="absolute top-2.5 left-3 text-[9px] font-mono text-neutral-500 uppercase pointer-events-none flex items-center space-x-2">
+            <span>OBS BROWSER SOURCE 1920x1080</span>
+            <span>•</span>
+            <span style={{ color: accent }}>POSITION: {settings.position || 'top-right'}</span>
+            <span>•</span>
+            <span>STYLE: {settings.layoutStyle || 'pill'}</span>
           </div>
 
-          <div
-            className="w-full flex items-center justify-center p-4 transition-transform duration-200"
-            style={{ transform: `scale(${settings.scale || 1})` }}
-          >
-            {testMode === 'roll' && testDrawData ? (
-              <div className="w-full max-w-4xl">
+          {/* Active Content Rendering */}
+          {testMode === 'roll' && testDrawData ? (
+            <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+              <div className="w-full max-w-3xl">
                 <NameRoll
                   drawData={testDrawData}
                   durationSec={settings.animationDurationSec}
                   soundEnabled={settings.soundEnabled}
                   soundVolume={settings.soundVolume}
-                  accentColor={settings.accentColor}
+                  accentColor={accent}
                   onComplete={() => setTestMode('winner')}
                 />
               </div>
-            ) : testMode === 'winner' ? (
-              <WinnerCard
-                winner={sampleWinner}
-                giveaway={sampleGiveaway}
-                accentColor={settings.accentColor}
-              />
-            ) : (
-              <OverlayBadge
-                giveaway={sampleGiveaway}
-                settings={settings}
-                recentJoined={sampleWinner}
-              />
-            )}
+            </div>
+          ) : testMode === 'winner' ? (
+            <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
+              <div className="w-full max-w-md">
+                <WinnerCard
+                  winner={sampleWinner}
+                  giveaway={sampleGiveaway}
+                  accentColor={accent}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className={`absolute ${previewPosClass} flex pointer-events-none`}>
+              <div
+                className="pointer-events-auto transition-all duration-300"
+                style={{
+                  transform: `scale(${settings.scale || 1})`,
+                }}
+              >
+                <OverlayBadge
+                  giveaway={sampleGiveaway}
+                  settings={settings}
+                  recentJoined={sampleWinner}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Streamer Arrangement Controls: Position Grid & Layout Style */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Screen Position Selector Grid (3x2) */}
+        <div className="p-6 rounded-2xl glass-card space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+            <div className="flex items-center space-x-2.5">
+              <Layout className="w-4 h-4" style={{ color: accent }} />
+              <div>
+                <h3 className="text-sm font-bold text-white">Screen Position (Streamer View)</h3>
+                <p className="text-[11px] text-neutral-400">Anchor the badge away from your camera, minimap, or HUD</p>
+              </div>
+            </div>
+            <span
+              className="text-xs font-mono font-bold px-2 py-0.5 rounded capitalize"
+              style={{ backgroundColor: `${accent}20`, color: accent }}
+            >
+              {settings.position || 'top-right'}
+            </span>
+          </div>
+
+          {/* Interactive Screen Grid Representation */}
+          <div className="grid grid-cols-3 gap-2.5 p-3 rounded-xl bg-black/40 border border-white/[0.06]">
+            {positions.map((pos) => {
+              const isActive = (settings.position || 'top-right') === pos.id;
+              return (
+                <button
+                  key={pos.id}
+                  onClick={() => onUpdateSettings({ position: pos.id })}
+                  className={`p-3 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between h-20 ${
+                    isActive
+                      ? 'border-2 shadow-lg bg-white/[0.08]'
+                      : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.12]'
+                  }`}
+                  style={{
+                    borderColor: isActive ? accent : undefined,
+                    boxShadow: isActive ? `0 0 16px -2px ${accent}40` : undefined,
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-bold ${isActive ? 'text-white' : 'text-neutral-300'}`}>
+                      {pos.label}
+                    </span>
+                    {isActive && (
+                      <span className="w-2 h-2 rounded-full animate-ping" style={{ backgroundColor: accent }} />
+                    )}
+                  </div>
+                  <span className="text-[10px] text-neutral-400 leading-tight">
+                    {pos.desc}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Layout Style Switcher */}
+        <div className="p-6 rounded-2xl glass-card space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+            <div className="flex items-center space-x-2.5">
+              <Sparkles className="w-4 h-4" style={{ color: accent }} />
+              <div>
+                <h3 className="text-sm font-bold text-white">Badge Layout Style</h3>
+                <p className="text-[11px] text-neutral-400">Choose the graphic style suited for your broadcast</p>
+              </div>
+            </div>
+            <span
+              className="text-xs font-mono font-bold px-2 py-0.5 rounded uppercase"
+              style={{ backgroundColor: `${accent}20`, color: accent }}
+            >
+              {settings.layoutStyle || 'pill'}
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            {layoutStyles.map((item) => {
+              const isActive = (settings.layoutStyle || 'pill') === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onUpdateSettings({ layoutStyle: item.id })}
+                  className={`w-full p-3.5 rounded-xl border text-left transition-all duration-200 flex items-center justify-between ${
+                    isActive
+                      ? 'border-2 shadow-lg bg-white/[0.08]'
+                      : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.12]'
+                  }`}
+                  style={{
+                    borderColor: isActive ? accent : undefined,
+                    boxShadow: isActive ? `0 0 16px -2px ${accent}30` : undefined,
+                  }}
+                >
+                  <div className="flex items-center space-x-3">
+                    <span className="text-xl">{item.icon}</span>
+                    <div>
+                      <div className={`text-xs font-bold ${isActive ? 'text-white' : 'text-neutral-200'}`}>
+                        {item.label}
+                      </div>
+                      <div className="text-[11px] text-neutral-400 mt-0.5">
+                        {item.desc}
+                      </div>
+                    </div>
+                  </div>
+                  {isActive && <Check className="w-4 h-4 flex-shrink-0" style={{ color: accent }} />}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Settings Grid */}
+      {/* Visual Settings & OBS Instructions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Visual Settings */}
+        {/* Appearance & Sound Settings */}
         <div className="p-6 rounded-2xl glass-card space-y-5">
           <div className="flex items-center space-x-2.5 pb-3 border-b border-white/[0.08]">
-            <Palette className="w-4 h-4 text-[#53fc18]" />
-            <h3 className="text-sm font-bold text-white">Appearance & Timing</h3>
+            <Palette className="w-4 h-4" style={{ color: accent }} />
+            <h3 className="text-sm font-bold text-white">Accent & Animation Settings</h3>
           </div>
 
           {/* Accent Color Presets */}
@@ -284,7 +529,9 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
           <div>
             <div className="flex items-center justify-between text-xs font-medium text-neutral-300 mb-2">
               <span>CS2 Roll Duration</span>
-              <span className="text-[#53fc18] font-bold font-mono">{settings.animationDurationSec}s</span>
+              <span className="font-bold font-mono" style={{ color: accent }}>
+                {settings.animationDurationSec}s
+              </span>
             </div>
             <input
               type="range"
@@ -293,7 +540,8 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
               step="0.5"
               value={settings.animationDurationSec}
               onChange={(e) => onUpdateSettings({ animationDurationSec: Number(e.target.value) })}
-              className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-[#53fc18]"
+              className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer"
+              style={{ accentColor: accent }}
             />
             <div className="flex justify-between text-[11px] text-neutral-500 mt-1">
               <span>Fast (4s)</span>
@@ -315,7 +563,8 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
               step="0.05"
               value={settings.scale || 1}
               onChange={(e) => onUpdateSettings({ scale: Number(e.target.value) })}
-              className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-[#53fc18]"
+              className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer"
+              style={{ accentColor: accent }}
             />
           </div>
 
@@ -324,15 +573,19 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-xs font-semibold text-white block">Mechanical Sound Effects</span>
-                <span className="text-[11px] text-neutral-400">Audio clicks while spinning and victory chime</span>
+                <span className="text-[11px] text-neutral-400">Audio ticks during roll and victory fanfare</span>
               </div>
               <button
                 onClick={() => onUpdateSettings({ soundEnabled: !settings.soundEnabled })}
                 className={`p-2 rounded-xl border transition-all ${
                   settings.soundEnabled
-                    ? 'bg-[#53fc18]/15 text-[#53fc18] border-[#53fc18]/30'
+                    ? 'bg-white/[0.1] text-white border-white/[0.2]'
                     : 'bg-white/[0.04] text-neutral-500 border-white/[0.08]'
                 }`}
+                style={{
+                  color: settings.soundEnabled ? accent : undefined,
+                  borderColor: settings.soundEnabled ? `${accent}40` : undefined,
+                }}
               >
                 {settings.soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </button>
@@ -351,7 +604,8 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                   step="0.05"
                   value={settings.soundVolume || 0.8}
                   onChange={(e) => onUpdateSettings({ soundVolume: Number(e.target.value) })}
-                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-[#53fc18]"
+                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer"
+                  style={{ accentColor: accent }}
                 />
               </div>
             )}
@@ -361,7 +615,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
         {/* OBS Setup Instructions */}
         <div className="p-6 rounded-2xl glass-card space-y-4">
           <div className="flex items-center space-x-2.5 pb-3 border-b border-white/[0.08]">
-            <Layers className="w-4 h-4 text-[#53fc18]" />
+            <Layers className="w-4 h-4" style={{ color: accent }} />
             <h3 className="text-sm font-bold text-white">How to Add to OBS Studio</h3>
           </div>
 
@@ -369,29 +623,29 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
             <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1">
               <div className="font-semibold text-white">1. Create a Browser Source</div>
               <p className="text-neutral-400">
-                In OBS Studio, click the <strong className="text-white">+</strong> button under <strong className="text-white">Sources</strong> and select <strong className="text-white">Browser</strong>.
+                In OBS Studio, click <strong className="text-white">+</strong> under <strong className="text-white">Sources</strong> and select <strong className="text-white">Browser</strong>. Name it e.g. "Kick Giveaway".
               </p>
             </div>
 
             <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2">
               <div className="font-semibold text-white">2. Paste URL & Set Dimensions</div>
               <p className="text-neutral-400">
-                Paste your unique Overlay URL and set the exact dimensions:
+                Paste your unique Overlay URL and set canvas to standard 1080p:
               </p>
               <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div className="bg-black/40 p-2 rounded-lg border border-white/[0.08]">
-                  Width: <span className="text-[#53fc18] font-bold">1920</span>
+                <div className="bg-black/40 p-2.5 rounded-lg border border-white/[0.08]">
+                  Width: <span className="font-bold" style={{ color: accent }}>1920</span>
                 </div>
-                <div className="bg-black/40 p-2 rounded-lg border border-white/[0.08]">
-                  Height: <span className="text-[#53fc18] font-bold">1080</span>
+                <div className="bg-black/40 p-2.5 rounded-lg border border-white/[0.08]">
+                  Height: <span className="font-bold" style={{ color: accent }}>1080</span>
                 </div>
               </div>
             </div>
 
             <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1">
-              <div className="font-semibold text-white">3. Enable Audio (Recommended)</div>
+              <div className="font-semibold text-white">3. Audio Control in OBS (Recommended)</div>
               <p className="text-neutral-400">
-                Check <strong className="text-white">"Control audio via OBS"</strong> in the browser source properties to route roulette sound effects directly through your stream audio mixer.
+                Check <strong className="text-white">"Control audio via OBS"</strong> in the browser source properties to route the roulette audio ticks and celebration chime directly into your stream mixer.
               </p>
             </div>
           </div>

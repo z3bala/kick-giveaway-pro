@@ -34,7 +34,7 @@ export class GiveawayService {
     // Load persisted overlay settings or use defaults
     this.overlaySettings = dbOps.getSetting<OverlaySettings>(this.db, 'overlay_settings', {
       theme: 'dark',
-      accentColor: '#e11d48',
+      accentColor: '#53fc18',
       cardStyle: 'modern',
       animationDurationSec: 7.5,
       soundEnabled: true,
@@ -43,6 +43,8 @@ export class GiveawayService {
       showCount: true,
       showRecentTicker: true,
       scale: 1,
+      position: 'top-right',
+      layoutStyle: 'pill',
     });
 
     // Load app settings

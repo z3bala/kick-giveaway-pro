@@ -61,38 +61,99 @@ export const OverlayApp: React.FC = () => {
     }
   }, [giveaway]);
 
+  // Position & origin mapping for streamer arrangement
+  const getPositionConfig = (pos: string = 'top-right') => {
+    switch (pos) {
+      case 'top-left':
+        return {
+          classes: 'top-6 left-6 items-start justify-start',
+          origin: 'top left',
+        };
+      case 'top-center':
+        return {
+          classes: 'top-6 left-1/2 -translate-x-1/2 items-center justify-start',
+          origin: 'top center',
+        };
+      case 'top-right':
+        return {
+          classes: 'top-6 right-6 items-end justify-start',
+          origin: 'top right',
+        };
+      case 'bottom-left':
+        return {
+          classes: 'bottom-6 left-6 items-start justify-end',
+          origin: 'bottom left',
+        };
+      case 'bottom-center':
+        return {
+          classes: 'bottom-6 left-1/2 -translate-x-1/2 items-center justify-end',
+          origin: 'bottom center',
+        };
+      case 'bottom-right':
+        return {
+          classes: 'bottom-6 right-6 items-end justify-end',
+          origin: 'bottom right',
+        };
+      case 'center':
+      default:
+        return {
+          classes: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 items-center justify-center',
+          origin: 'center center',
+        };
+    }
+  };
+
+  const posConfig = getPositionConfig(overlaySettings.position || 'top-right');
+  const scale = overlaySettings.scale || 1;
+
   return (
-    <div
-      className="min-h-screen w-full flex flex-col justify-center items-center bg-transparent p-6 select-none overflow-hidden"
-      style={{
-        transform: `scale(${overlaySettings.scale || 1})`,
-        transformOrigin: 'center center',
-      }}
-    >
-      {/* State 1: Active Draw Animation */}
+    <div className="fixed inset-0 w-full h-full bg-transparent select-none overflow-hidden pointer-events-none">
+      {/* State 1: Active CS2 Roulette Draw Animation (Centered with cinematic backdrop) */}
       {giveaway && giveaway.status === 'drawing' && activeDraw ? (
-        <div className="w-full max-w-5xl animate-fade-in">
-          <NameRoll
-            drawData={activeDraw}
-            durationSec={overlaySettings.animationDurationSec}
-            soundEnabled={overlaySettings.soundEnabled}
-            soundVolume={overlaySettings.soundVolume}
-            accentColor={overlaySettings.accentColor}
-            onComplete={handleRollComplete}
-          />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/50 backdrop-blur-[2px] animate-fade-in pointer-events-auto">
+          <div
+            className="w-full max-w-5xl"
+            style={{
+              transform: `scale(${scale})`,
+              transformOrigin: 'center center',
+            }}
+          >
+            <NameRoll
+              drawData={activeDraw}
+              durationSec={overlaySettings.animationDurationSec}
+              soundEnabled={overlaySettings.soundEnabled}
+              soundVolume={overlaySettings.soundVolume}
+              accentColor={overlaySettings.accentColor}
+              onComplete={handleRollComplete}
+            />
+          </div>
         </div>
       ) : giveaway && giveaway.status === 'completed' && localCompletedWinner ? (
-        /* State 2: Winner Card Celebration */
-        <div className="w-full max-w-xl animate-scale-in">
-          <WinnerCard
-            winner={localCompletedWinner.winner}
-            giveaway={localCompletedWinner.giveaway}
-            accentColor={overlaySettings.accentColor}
-          />
+        /* State 2: Winner Card Celebration (Centered with celebration confetti) */
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-[2px] animate-fade-in pointer-events-auto">
+          <div
+            className="w-full max-w-xl animate-scale-in"
+            style={{
+              transform: `scale(${scale})`,
+              transformOrigin: 'center center',
+            }}
+          >
+            <WinnerCard
+              winner={localCompletedWinner.winner}
+              giveaway={localCompletedWinner.giveaway}
+              accentColor={overlaySettings.accentColor}
+            />
+          </div>
         </div>
       ) : giveaway && (giveaway.status === 'open' || giveaway.status === 'closed') ? (
-        /* State 3: Giveaway Live/Closed Badge */
-        <div className="animate-fade-in">
+        /* State 3: Giveaway Live/Closed Badge (Arranged at Streamer's chosen screen position) */
+        <div
+          className={`fixed z-30 flex flex-col pointer-events-auto ${posConfig.classes}`}
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: posConfig.origin,
+          }}
+        >
           <OverlayBadge
             giveaway={giveaway}
             settings={overlaySettings}
@@ -100,9 +161,9 @@ export const OverlayApp: React.FC = () => {
           />
         </div>
       ) : (
-        /* State 4: Idle / Standby (Transparent or tiny indicator during setup) */
-        <div className="opacity-0 hover:opacity-10 transition-opacity text-[10px] text-neutral-600 font-mono">
-          OBS Overlay Ready {connected ? '• Live' : '• Reconnecting...'}
+        /* State 4: Idle / Standby (Transparent on stream) */
+        <div className="absolute bottom-3 right-3 opacity-0 hover:opacity-20 transition-opacity text-[10px] text-neutral-500 font-mono">
+          OBS Overlay Connected • Standby
         </div>
       )}
     </div>
