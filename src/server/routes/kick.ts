@@ -14,7 +14,7 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
   });
 
   // OAuth Redirect URL callback from Kick Developer Portal
-  router.get('/callback', (req, res) => {
+  router.get('/callback', async (req, res) => {
     const { code, error, error_description } = req.query;
     if (error) {
       res.send(`
@@ -32,8 +32,43 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
       `);
       return;
     }
-    // Return to dashboard
-    res.redirect(`/?oauth_code=${encodeURIComponent(String(code || ''))}`);
+
+    if (code) {
+      const host = req.get('host');
+      const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+      const redirectUri = `${protocol}://${host}/api/kick/callback`;
+
+      try {
+        const token = await kickBot.getApiClient().exchangeAuthCode(String(code), redirectUri);
+        if (token) {
+          giveawayService.updateAppSettings({}, { accessToken: token });
+          res.redirect('/settings?oauth_success=true');
+          return;
+        }
+      } catch (err: any) {
+        console.error('[KickOAuth] Failed to exchange code for token:', err.message);
+      }
+    }
+
+    // Return to settings
+    res.redirect(`/settings?oauth_code=${encodeURIComponent(String(code || ''))}`);
+  });
+
+  // Direct Token Fetch via Client Credentials
+  router.post('/exchange-token', requireAdminAuth, async (req, res) => {
+    try {
+      const token = await kickBot.getApiClient().fetchTokenWithClientCredentials();
+      if (token) {
+        giveawayService.updateAppSettings({}, { accessToken: token });
+        res.json({ success: true, message: 'Access token generated successfully.' });
+      } else {
+        res.status(400).json({
+          error: 'Could not fetch token from Kick. Ensure your Client ID and Client Secret are correct.',
+        });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // Connect to Kick chat

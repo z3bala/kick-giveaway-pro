@@ -283,57 +283,130 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         {/* Kick Developer API Credentials */}
         <div className="p-6 rounded-2xl glass-card space-y-4">
-          <div className="flex items-center space-x-3 pb-3 border-b border-white/[0.08]">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <KeyRound className="w-4 h-4" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <KeyRound className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Kick Bot Authorization (Client ID & Secret)</h3>
+                <p className="text-xs text-neutral-400">
+                  Enter your Client ID and Secret from dev.kick.com to allow the bot to speak in chat.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-white">OAuth & Bot Credentials (Optional)</h3>
-              <p className="text-xs text-neutral-400">
-                Required only if you want the bot to post winner announcements directly into your Kick chat.
-              </p>
-            </div>
+
+            {appSettings.kickAccessTokenMasked ? (
+              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#53fc18]/15 border border-[#53fc18]/30 text-[#53fc18] text-xs font-semibold">
+                <span className="w-2 h-2 rounded-full bg-[#53fc18]" />
+                <span>Bot Chat Authorized</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium">
+                <span>Authorization Needed</span>
+              </span>
+            )}
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs text-neutral-300 space-y-2">
+            <p>
+              <strong>Only have Client ID and Client Secret?</strong> That is completely normal! Save your Client ID and Secret below, then click <strong>"Authorize with Kick (1-Click)"</strong> to link your bot.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                Client ID
+                OAuth Client ID *
               </label>
               <input
                 type="text"
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
-                placeholder="From dev.kick.com"
+                placeholder="Paste Client ID from dev.kick.com"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/[0.1] text-white text-sm focus:border-[#53fc18] focus:outline-none transition-colors"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                Client Secret {appSettings.kickClientSecretMasked && <span className="text-[#53fc18] font-bold text-[11px]">(CONFIGURED)</span>}
+                OAuth Client Secret * {appSettings.kickClientSecretMasked && <span className="text-[#53fc18] font-bold text-[11px]">(SAVED)</span>}
               </label>
               <input
                 type="password"
                 value={clientSecret}
                 onChange={(e) => setClientSecret(e.target.value)}
-                placeholder={appSettings.kickClientSecretMasked ? '•••••••••••••••• (Leave blank to keep current)' : 'Enter Client Secret'}
+                placeholder={appSettings.kickClientSecretMasked ? '•••••••••••••••• (Saved. Leave blank to keep)' : 'Paste Client Secret from dev.kick.com'}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/[0.1] text-white text-sm focus:border-[#53fc18] focus:outline-none transition-colors"
               />
             </div>
 
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-                OAuth Access Token {appSettings.kickAccessTokenMasked && <span className="text-[#53fc18] font-bold text-[11px]">(CONFIGURED)</span>}
+                OAuth Access Token (Auto-populated upon authorization) {appSettings.kickAccessTokenMasked && <span className="text-[#53fc18] font-bold text-[11px]">(ACTIVE)</span>}
               </label>
               <input
                 type="password"
                 value={accessToken}
                 onChange={(e) => setAccessToken(e.target.value)}
-                placeholder={appSettings.kickAccessTokenMasked ? '•••••••••••••••• (Leave blank to keep current)' : 'Bearer Token with chat:write permissions'}
+                placeholder={appSettings.kickAccessTokenMasked ? '•••••••••••••••• (Active. Generated by OAuth)' : 'Auto-generated or paste manual token'}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/[0.1] text-white text-sm focus:border-[#53fc18] focus:outline-none transition-colors"
               />
             </div>
+          </div>
+
+          {/* 1-Click Action Buttons */}
+          <div className="pt-2 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                const targetClientId = clientId.trim() || appSettings.kickClientId;
+                if (!targetClientId) {
+                  alert('Please enter your Client ID first, then click Authorize.');
+                  return;
+                }
+                const authUrl = `https://id.kick.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(targetClientId)}&redirect_uri=${encodeURIComponent(redirectUrl)}&scope=chat:write%20channel:read%20user:read`;
+                window.location.href = authUrl;
+              }}
+              className="px-4 py-2.5 rounded-xl bg-[#53fc18] hover:bg-[#45d914] text-black font-bold text-xs flex items-center space-x-2 transition-all shadow-md shadow-[#53fc18]/20"
+            >
+              <KeyRound className="w-4 h-4 stroke-[2.5]" />
+              <span>Authorize with Kick (1-Click)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  setIsSaving(true);
+                  // Save settings first if modified
+                  if (clientSecret || clientId) {
+                    await onSaveSettings({
+                      kickClientId: clientId.trim(),
+                      kickClientSecret: clientSecret.trim() || undefined,
+                    });
+                  }
+                  const res = await fetch('/api/kick/exchange-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                  });
+                  const data = await res.json();
+                  if (res.ok) {
+                    setFeedback({ type: 'success', message: 'Token generated and bot connected to Kick API!' });
+                    window.location.reload();
+                  } else {
+                    setFeedback({ type: 'error', message: data.error || 'Token fetch failed. Try the 1-Click Authorize button.' });
+                  }
+                } catch (err: any) {
+                  setFeedback({ type: 'error', message: err.message });
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+              className="px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] text-neutral-200 text-xs font-semibold flex items-center space-x-1.5 transition-all"
+            >
+              <span>Auto-Fetch Token via Client Secret</span>
+            </button>
           </div>
         </div>
 

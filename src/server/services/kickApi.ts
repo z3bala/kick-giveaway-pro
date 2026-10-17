@@ -14,9 +14,103 @@ export class KickApiClient {
     this.accessToken = token;
   }
 
+  public getAccessToken(): string | undefined {
+    return this.accessToken;
+  }
+
   public setCredentials(clientId: string, clientSecret: string) {
     this.clientId = clientId;
     this.clientSecret = clientSecret;
+  }
+
+  /**
+   * Request App Access Token from Kick identity server using Client Credentials flow
+   */
+  public async fetchTokenWithClientCredentials(): Promise<string | null> {
+    if (!this.clientId || !this.clientSecret) {
+      console.warn('[KickApiClient] Missing clientId or clientSecret for token exchange.');
+      return null;
+    }
+
+    try {
+      const body = new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
+      });
+
+      const res = await fetch('https://id.kick.com/oauth/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: body.toString(),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error(`[KickApiClient] Token request failed (${res.status}):`, errText);
+        return null;
+      }
+
+      const data = (await res.json()) as any;
+      if (data.access_token) {
+        this.accessToken = data.access_token;
+        console.log('[KickApiClient] Successfully obtained Kick access token via client_credentials.');
+        return data.access_token;
+      }
+      return null;
+    } catch (err: any) {
+      console.error('[KickApiClient] Error in client credentials flow:', err.message);
+      return null;
+    }
+  }
+
+  /**
+   * Exchange OAuth authorization code for User Access Token (chat:write scope)
+   */
+  public async exchangeAuthCode(code: string, redirectUri: string): Promise<string | null> {
+    if (!this.clientId || !this.clientSecret) {
+      console.warn('[KickApiClient] Missing clientId or clientSecret for code exchange.');
+      return null;
+    }
+
+    try {
+      const body = new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
+        code,
+        redirect_uri: redirectUri,
+      });
+
+      const res = await fetch('https://id.kick.com/oauth/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: body.toString(),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error(`[KickApiClient] Auth code exchange failed (${res.status}):`, errText);
+        return null;
+      }
+
+      const data = (await res.json()) as any;
+      if (data.access_token) {
+        this.accessToken = data.access_token;
+        console.log('[KickApiClient] Successfully exchanged authorization code for Kick access token.');
+        return data.access_token;
+      }
+      return null;
+    } catch (err: any) {
+      console.error('[KickApiClient] Error in auth code exchange:', err.message);
+      return null;
+    }
   }
 
   /**

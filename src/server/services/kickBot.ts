@@ -59,6 +59,10 @@ export class KickBotService extends EventEmitter {
     return { ...this.state };
   }
 
+  public getApiClient(): KickApiClient {
+    return this.apiClient;
+  }
+
   public updateConfig(newConfig: Partial<KickBotConfig>): void {
     const channelChanged = newConfig.channelSlug && newConfig.channelSlug !== this.config.channelSlug;
     this.config = { ...this.config, ...newConfig };
