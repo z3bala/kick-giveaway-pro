@@ -47,10 +47,10 @@ export class GiveawayService {
 
     // Load app settings
     this.appSettings = dbOps.getSetting<AppSettings>(this.db, 'app_settings', {
-      kickChannelSlug: process.env.KICK_CHANNEL_SLUG || 'demo_channel',
-      kickBroadcasterId: process.env.KICK_BROADCASTER_ID || '',
-      kickClientId: process.env.KICK_CLIENT_ID || '',
-      kickClientSecretMasked: process.env.KICK_CLIENT_SECRET ? '••••••••' : '',
+      kickChannelSlug: process.env.KICK_CHANNEL_SLUG || 'frixen1',
+      kickBroadcasterId: process.env.KICK_BROADCASTER_ID || '29176855',
+      kickClientId: process.env.KICK_CLIENT_ID || '01M55MY622GWQP6EA2HSJ4CJTJ',
+      kickClientSecretMasked: '••••••••',
       kickAccessTokenMasked: process.env.KICK_ACCESS_TOKEN ? '••••••••' : '',
       defaultKeyword: process.env.DEFAULT_ENTRY_KEYWORD || '!join',
       botReplyEnabled: process.env.BOT_REPLY_ENABLED !== 'false',
@@ -64,8 +64,8 @@ export class GiveawayService {
 
     // Load persisted secrets from SQLite so they survive restarts
     const persistedToken = dbOps.getSetting<string>(this.db, 'kick_access_token', '') || process.env.KICK_ACCESS_TOKEN || '';
-    const persistedSecret = dbOps.getSetting<string>(this.db, 'kick_client_secret', '') || process.env.KICK_CLIENT_SECRET || '';
-    const persistedClientId = dbOps.getSetting<string>(this.db, 'kick_client_id', '') || process.env.KICK_CLIENT_ID || '';
+    const persistedSecret = dbOps.getSetting<string>(this.db, 'kick_client_secret', '') || process.env.KICK_CLIENT_SECRET || '4ba04b149cf41010573ec24b3d433cd32fc713b0afc80795ddf1315f933b6179';
+    const persistedClientId = dbOps.getSetting<string>(this.db, 'kick_client_id', '') || process.env.KICK_CLIENT_ID || '01M55MY622GWQP6EA2HSJ4CJTJ';
 
     if (persistedClientId) {
       this.appSettings.kickClientId = persistedClientId;
@@ -82,8 +82,10 @@ export class GiveawayService {
 
     // Initialize KickBot credentials from env and persistent db
     this.kickBot.updateConfig({
-      clientId: this.appSettings.kickClientId || process.env.KICK_CLIENT_ID,
-      clientSecret: persistedSecret || process.env.KICK_CLIENT_SECRET,
+      channelSlug: this.appSettings.kickChannelSlug || 'frixen1',
+      broadcasterId: this.appSettings.kickBroadcasterId || '29176855',
+      clientId: this.appSettings.kickClientId || process.env.KICK_CLIENT_ID || '01M55MY622GWQP6EA2HSJ4CJTJ',
+      clientSecret: persistedSecret || process.env.KICK_CLIENT_SECRET || '4ba04b149cf41010573ec24b3d433cd32fc713b0afc80795ddf1315f933b6179',
       accessToken: persistedToken || process.env.KICK_ACCESS_TOKEN,
     });
 

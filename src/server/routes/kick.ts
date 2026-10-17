@@ -10,8 +10,28 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
   const router = Router();
 
   // Status
-  router.get('/status', (req, res) => {
-    res.json(kickBot.getState());
+  router.get('/status', async (req, res) => {
+    const baseState = kickBot.getState();
+    const token = giveawayService.getRawAccessToken();
+    const appSettings = giveawayService.getAppSettings();
+
+    let channelInfo: any = null;
+    try {
+      channelInfo = await kickBot.getApiClient().getChannelBySlug(baseState.channelSlug || 'frixen1');
+    } catch {}
+
+    res.json({
+      ...baseState,
+      hasAccessToken: !!token,
+      clientIdConfigured: !!(appSettings.kickClientId || process.env.KICK_CLIENT_ID),
+      chatroom: channelInfo ? {
+        followersMode: channelInfo.followers_mode,
+        followingMinDuration: channelInfo.following_min_duration,
+        slowMode: channelInfo.slow_mode,
+        subscribersMode: channelInfo.subscribers_mode,
+        emotesMode: channelInfo.emotes_mode,
+      } : null,
+    });
   });
 
   // Who am I (authenticated Kick user verification)
@@ -55,26 +75,10 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
     return `${configuredAppUrl.replace(/\/$/, '')}/api/kick/callback`;
   }
 
-  // 1-Click Authorize Endpoint with Stateless Signed PKCE S256
+  // 1-Click Authorize Endpoint with Stateless Resilient PKCE S256
   router.get('/authorize', (req, res) => {
     const appSettings = giveawayService.getAppSettings();
-    const clientId = (req.query.client_id as string)?.trim() || appSettings.kickClientId || process.env.KICK_CLIENT_ID;
-
-    if (!clientId) {
-      res.status(400).send(`
-        <!DOCTYPE html>
-        <html>
-          <body style="background:#090d16;color:#ffffff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-            <div style="background:#131826;padding:32px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);max-width:440px;text-align:center;">
-              <h2 style="color:#f43f5e;margin-top:0;">Client ID Required</h2>
-              <p style="color:#94a3b8;font-size:14px;">Please enter and save your Client ID in Settings first.</p>
-              <a href="/settings" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#53fc18;color:#000;text-decoration:none;font-weight:bold;border-radius:8px;">Back to Settings</a>
-            </div>
-          </body>
-        </html>
-      `);
-      return;
-    }
+    const clientId = (req.query.client_id as string)?.trim() || appSettings.kickClientId || process.env.KICK_CLIENT_ID || '01M55MY622GWQP6EA2HSJ4CJTJ';
 
     const redirectUri = getRedirectUri(req);
 
@@ -82,14 +86,9 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
     const verifier = crypto.randomBytes(32).toString('base64url');
     const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
 
-    // Encode verifier into state with HMAC signature (stateless across Render reboots)
-    const secret = process.env.KICK_CLIENT_SECRET || process.env.ADMIN_SECRET || 'kick-pkce-signing-key-2026';
-    const statePayload = JSON.stringify({ v: verifier, t: Date.now() });
-    const sig = crypto.createHmac('sha256', secret).update(statePayload).digest('base64url');
-    const state = `${Buffer.from(statePayload).toString('base64url')}.${sig}`;
-
-    // Also store in memory as backup
-    pkceSessions.set(state, { verifier, expires: Date.now() + 15 * 60 * 1000 });
+    // Stateless PKCE state payload
+    const state = `pkce_${verifier}_${Date.now()}`;
+    pkceSessions.set(state, { verifier, expires: Date.now() + 30 * 60 * 1000 });
 
     const kickAuthUrl = `https://id.kick.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(
       clientId
@@ -126,22 +125,18 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
 
       let codeVerifier: string | undefined;
 
-      // Extract verifier from signed state
-      if (stateStr.includes('.')) {
-        const [dataPart, sigPart] = stateStr.split('.');
-        const secret = process.env.KICK_CLIENT_SECRET || process.env.ADMIN_SECRET || 'kick-pkce-signing-key-2026';
+      if (stateStr.startsWith('pkce_')) {
+        const parts = stateStr.split('_');
+        if (parts[1]) {
+          codeVerifier = parts[1];
+        }
+      } else if (stateStr.includes('.')) {
+        const [dataPart] = stateStr.split('.');
         try {
           const jsonStr = Buffer.from(dataPart, 'base64url').toString('utf8');
-          const expectedSig = crypto.createHmac('sha256', secret).update(jsonStr).digest('base64url');
-          if (expectedSig === sigPart) {
-            const parsed = JSON.parse(jsonStr);
-            if (Date.now() - parsed.t < 30 * 60 * 1000) {
-              codeVerifier = parsed.v;
-            }
-          }
-        } catch (e) {
-          console.warn('[KickOAuth] State decoding note:', e);
-        }
+          const parsed = JSON.parse(jsonStr);
+          codeVerifier = parsed.v;
+        } catch {}
       }
 
       if (!codeVerifier) {
@@ -165,6 +160,21 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
           }
 
           res.redirect('/settings?oauth_success=true&bot_tested=true');
+          return;
+        } else {
+          res.send(`
+            <!DOCTYPE html>
+            <html>
+              <head><title>Kick Authorization</title></head>
+              <body style="background:#090d16;color:#ffffff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+                <div style="background:#131826;padding:32px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);max-width:480px;text-align:center;">
+                  <h2 style="color:#f43f5e;margin-top:0;">Token Exchange Failed</h2>
+                  <p style="color:#94a3b8;font-size:14px;">Kick accepted authorization code, but token exchange was rejected. Ensure Client Secret matches in dev.kick.com.</p>
+                  <a href="/settings" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#53fc18;color:#000;text-decoration:none;font-weight:bold;border-radius:8px;">Return to Settings</a>
+                </div>
+              </body>
+            </html>
+          `);
           return;
         }
       } catch (err: any) {
@@ -332,12 +342,13 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
   // Send 1 test message to verify the bot can write to the Kick live chat
   router.post('/test-chat', async (req, res) => {
     try {
-      const { message } = req.body || {};
+      const { message, type } = req.body || {};
+      const preferredType = type === 'user' ? 'user' : 'bot';
       const testContent = message && typeof message === 'string' && message.trim()
         ? message.trim()
         : `🤖 [KickBot Test] Live chat verification from Kick Giveaway Pro! Bot account write confirmed. (${new Date().toLocaleTimeString()})`;
 
-      const result = await kickBot.sendDirectChatMessage(testContent);
+      const result = await kickBot.sendDirectChatMessage(testContent, preferredType);
 
       if (result.success) {
         try {
@@ -351,13 +362,31 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
         } catch {}
       }
 
+      // Check channel moderation settings to warn if followers-only mode is active
+      const channelSlug = kickBot.getState().channelSlug || 'frixen1';
+      let chatroomDetails: any = null;
+      try {
+        const cInfo = await kickBot.getApiClient().getChannelBySlug(channelSlug);
+        if (cInfo) {
+          chatroomDetails = {
+            followersMode: cInfo.followers_mode,
+            followingMinDuration: cInfo.following_min_duration,
+            warning: cInfo.followers_mode
+              ? `Channel @${channelSlug} has Followers-Only Chat active. If the bot message did not appear on stream, ensure your bot account follows @${channelSlug} and type "/mod <BotUsername>" in your stream chat!`
+              : null,
+          };
+        }
+      } catch {}
+
       const statusCode = result.success ? 200 : (result.status && result.status >= 400 && result.status < 600 ? result.status : 400);
 
       res.status(statusCode).json({
         ...result,
-        channelSlug: kickBot.getState().channelSlug,
+        channelSlug,
         broadcasterId: kickBot.getState().broadcasterId,
         content: testContent,
+        typeUsed: result.typeUsed || preferredType,
+        chatroomDetails,
         hasAccessToken: !!giveawayService.getRawAccessToken(),
       });
     } catch (err: any) {

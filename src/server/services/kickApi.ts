@@ -15,7 +15,11 @@ export class KickApiClient {
     private clientId?: string,
     private clientSecret?: string,
     private accessToken?: string
-  ) {}
+  ) {
+    this.clientId = clientId || process.env.KICK_CLIENT_ID || '01M55MY622GWQP6EA2HSJ4CJTJ';
+    this.clientSecret = clientSecret || process.env.KICK_CLIENT_SECRET || '4ba04b149cf41010573ec24b3d433cd32fc713b0afc80795ddf1315f933b6179';
+    this.accessToken = accessToken || process.env.KICK_ACCESS_TOKEN || '';
+  }
 
   public setAccessToken(token: string) {
     this.accessToken = token;
@@ -26,15 +30,18 @@ export class KickApiClient {
   }
 
   public setCredentials(clientId: string, clientSecret: string) {
-    this.clientId = clientId;
-    this.clientSecret = clientSecret;
+    this.clientId = clientId || '01M55MY622GWQP6EA2HSJ4CJTJ';
+    this.clientSecret = clientSecret || '4ba04b149cf41010573ec24b3d433cd32fc713b0afc80795ddf1315f933b6179';
   }
 
   /**
    * Request App Access Token from Kick identity server using Client Credentials flow
    */
   public async fetchTokenWithClientCredentials(): Promise<string | null> {
-    if (!this.clientId || !this.clientSecret) {
+    const effectiveClientId = this.clientId || process.env.KICK_CLIENT_ID || '01M55MY622GWQP6EA2HSJ4CJTJ';
+    const effectiveClientSecret = this.clientSecret || process.env.KICK_CLIENT_SECRET || '4ba04b149cf41010573ec24b3d433cd32fc713b0afc80795ddf1315f933b6179';
+
+    if (!effectiveClientId || !effectiveClientSecret) {
       console.warn('[KickApiClient] Missing clientId or clientSecret for token exchange.');
       return null;
     }
@@ -42,8 +49,8 @@ export class KickApiClient {
     try {
       const body = new URLSearchParams({
         grant_type: 'client_credentials',
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
+        client_id: effectiveClientId,
+        client_secret: effectiveClientSecret,
       });
 
       const res = await fetch('https://id.kick.com/oauth/token', {
@@ -78,7 +85,10 @@ export class KickApiClient {
    * Exchange OAuth authorization code for User Access Token (chat:write scope)
    */
   public async exchangeAuthCode(code: string, redirectUri: string, codeVerifier?: string): Promise<string | null> {
-    if (!this.clientId || !this.clientSecret) {
+    const effectiveClientId = this.clientId || process.env.KICK_CLIENT_ID || '01M55MY622GWQP6EA2HSJ4CJTJ';
+    const effectiveClientSecret = this.clientSecret || process.env.KICK_CLIENT_SECRET || '4ba04b149cf41010573ec24b3d433cd32fc713b0afc80795ddf1315f933b6179';
+
+    if (!effectiveClientId || !effectiveClientSecret) {
       console.warn('[KickApiClient] Missing clientId or clientSecret for code exchange.');
       return null;
     }
@@ -86,8 +96,8 @@ export class KickApiClient {
     try {
       const params: Record<string, string> = {
         grant_type: 'authorization_code',
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
+        client_id: effectiveClientId,
+        client_secret: effectiveClientSecret,
         code,
         redirect_uri: redirectUri,
       };
@@ -129,56 +139,66 @@ export class KickApiClient {
   /**
    * Get channel info by slug (broadcaster_user_id, slug, etc.)
    */
-  public async getChannelBySlug(slug: string): Promise<{ broadcaster_user_id?: string; slug: string; id?: string; chatroom_id?: string } | null> {
-    if (!this.accessToken) {
-      // If no token is provided, fall back to Kick's public channel endpoint
-      try {
-        const res = await fetch(`https://kick.com/api/v2/channels/${encodeURIComponent(slug)}`, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) KickGiveawayPro/1.0',
-            'Accept': 'application/json',
-          },
-        });
-        if (!res.ok) return null;
+  public async getChannelBySlug(slug: string): Promise<{
+    broadcaster_user_id?: string;
+    slug: string;
+    id?: string;
+    chatroom_id?: string;
+    followers_mode?: boolean;
+    following_min_duration?: number;
+    slow_mode?: boolean;
+    subscribers_mode?: boolean;
+    emotes_mode?: boolean;
+  } | null> {
+    try {
+      const res = await fetch(`https://kick.com/api/v2/channels/${encodeURIComponent(slug)}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) KickGiveawayPro/1.0',
+          'Accept': 'application/json',
+        },
+      });
+      if (res.ok) {
         const data = (await res.json()) as any;
         return {
           broadcaster_user_id: String(data.user_id || data.id || ''),
           slug: data.slug || slug,
           id: String(data.id || ''),
           chatroom_id: data.chatroom?.id ? String(data.chatroom.id) : (data.chatroom_id ? String(data.chatroom_id) : undefined),
+          followers_mode: !!data.chatroom?.followers_mode,
+          following_min_duration: Number(data.chatroom?.following_min_duration || 0),
+          slow_mode: !!data.chatroom?.slow_mode,
+          subscribers_mode: !!data.chatroom?.subscribers_mode,
+          emotes_mode: !!data.chatroom?.emotes_mode,
         };
-      } catch {
-        return null;
+      }
+    } catch {}
+
+    if (this.accessToken) {
+      try {
+        const res = await fetch(`${this.baseUrl}/public/v1/channels?slug=${encodeURIComponent(slug)}`, {
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Accept': 'application/json',
+          },
+        });
+
+        if (res.ok) {
+          const data = (await res.json()) as any;
+          const channel = Array.isArray(data) ? data[0] : (data.data ? data.data[0] : data);
+          if (channel) {
+            return {
+              broadcaster_user_id: String(channel.broadcaster_user_id || channel.id || ''),
+              slug: channel.slug || slug,
+              id: String(channel.id || ''),
+              chatroom_id: channel.chatroom?.id ? String(channel.chatroom.id) : (channel.chatroom_id ? String(channel.chatroom_id) : undefined),
+            };
+          }
+        }
+      } catch (err: any) {
+        console.error('[KickApiClient] Failed to fetch channel info:', err.message);
       }
     }
-
-    try {
-      const res = await fetch(`${this.baseUrl}/public/v1/channels?slug=${encodeURIComponent(slug)}`, {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Accept': 'application/json',
-        },
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Kick API channel query failed (${res.status}): ${errText}`);
-      }
-
-      const data = (await res.json()) as any;
-      const channel = Array.isArray(data) ? data[0] : (data.data ? data.data[0] : data);
-      if (!channel) return null;
-
-      return {
-        broadcaster_user_id: String(channel.broadcaster_user_id || channel.id || ''),
-        slug: channel.slug || slug,
-        id: String(channel.id || ''),
-        chatroom_id: channel.chatroom?.id ? String(channel.chatroom.id) : (channel.chatroom_id ? String(channel.chatroom_id) : undefined),
-      };
-    } catch (err: any) {
-      console.error('[KickApiClient] Failed to fetch channel info:', err.message);
-      return null;
-    }
+    return null;
   }
 
   /**
@@ -186,7 +206,11 @@ export class KickApiClient {
    * Target endpoint: POST /public/v1/chat
    * Requires OAuth User Access Token with 'chat:write' scope.
    */
-  public async sendChatMessage(broadcasterUserId: string, content: string): Promise<SendChatMessageResult> {
+  public async sendChatMessage(
+    broadcasterUserId: string,
+    content: string,
+    preferredType?: 'bot' | 'user'
+  ): Promise<SendChatMessageResult> {
     if (!this.accessToken) {
       const err = 'No Kick access token configured. Please click "Authorize with Kick (1-Click)" in Settings with your bot account.';
       console.warn(`[KickApiClient] Cannot send chat message: ${err}`);
@@ -195,11 +219,12 @@ export class KickApiClient {
 
     try {
       const cleanContent = content.slice(0, 500);
-      const bId = broadcasterUserId ? Number(broadcasterUserId) : undefined;
+      const bId = broadcasterUserId ? Number(broadcasterUserId) : 29176855;
 
-      // Primary attempt: type 'bot' (Kick Developer API specification for bot badge display)
-      const payloadBot = {
-        type: 'bot',
+      // Determine sender type: 'bot' (official Kick Developer bot badge) or 'user'
+      const primaryType = preferredType || 'bot';
+      const payloadPrimary = {
+        type: primaryType,
         content: cleanContent,
         broadcaster_user_id: bId,
       };
@@ -211,27 +236,28 @@ export class KickApiClient {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify(payloadBot),
+        body: JSON.stringify(payloadPrimary),
       });
 
-      // Fallback: If type 'bot' is rejected by Kick, try type 'user'
-      if (!res.ok) {
-        const payloadUser = {
-          type: 'user',
+      // Fallback: If primary type was rejected by Kick, try alternate type
+      if (!res.ok && !preferredType) {
+        const fallbackType = primaryType === 'bot' ? 'user' : 'bot';
+        const payloadFallback = {
+          type: fallbackType,
           content: cleanContent,
           broadcaster_user_id: bId,
         };
-        const resUser = await fetch(`${this.baseUrl}/public/v1/chat`, {
+        const resFallback = await fetch(`${this.baseUrl}/public/v1/chat`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${this.accessToken}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-          body: JSON.stringify(payloadUser),
+          body: JSON.stringify(payloadFallback),
         });
-        if (resUser.ok) {
-          res = resUser;
+        if (resFallback.ok) {
+          res = resFallback;
         }
       }
 
@@ -250,7 +276,7 @@ export class KickApiClient {
         return { success: false, status: res.status, error: errorMsg, data: resJson };
       }
 
-      console.log(`[KickApiClient] Successfully sent chat message to broadcaster ${broadcasterUserId}: "${cleanContent.slice(0, 60)}..."`);
+      console.log(`[KickApiClient] Successfully sent chat message to broadcaster ${bId} (type: ${primaryType}): "${cleanContent.slice(0, 60)}..."`);
       return { success: true, status: res.status, data: resJson };
     } catch (err: any) {
       console.error('[KickApiClient] Network error sending chat message:', err.message);

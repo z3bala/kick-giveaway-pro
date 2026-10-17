@@ -32,9 +32,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onConnectKick,
   onDisconnectKick,
 }) => {
-  const [channelSlug, setChannelSlug] = useState(appSettings.kickChannelSlug || '');
-  const [broadcasterId, setBroadcasterId] = useState(appSettings.kickBroadcasterId || '');
-  const [clientId, setClientId] = useState(appSettings.kickClientId || '');
+  const [channelSlug, setChannelSlug] = useState(appSettings.kickChannelSlug || 'frixen1');
+  const [broadcasterId, setBroadcasterId] = useState(appSettings.kickBroadcasterId || '29176855');
+  const [clientId, setClientId] = useState(appSettings.kickClientId || '01M55MY622GWQP6EA2HSJ4CJTJ');
   const [clientSecret, setClientSecret] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [adminSecret, setAdminSecret] = useState('');
@@ -52,7 +52,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [isTestingChat, setIsTestingChat] = useState(false);
-  const [testChatFeedback, setTestChatFeedback] = useState<{ type: 'success' | 'error'; message: string; details?: string } | null>(null);
+  const [testChatFeedback, setTestChatFeedback] = useState<{ type: 'success' | 'error' | 'warning'; message: string; details?: string } | null>(null);
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -77,7 +77,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const redirectUrl = `${origin}/api/kick/callback`;
   const webhookUrl = `${origin}/api/kick/webhook`;
 
-  const handleSendTestMessage = async () => {
+  const handleSendTestMessage = async (type: 'bot' | 'user' = 'bot') => {
     setIsTestingChat(true);
     setTestChatFeedback(null);
     try {
@@ -85,14 +85,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          type,
           message: `🤖 [KickBot Test] Live chat write confirmed from Kick Giveaway Pro! (${new Date().toLocaleTimeString()})`,
         }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        const warning = data.chatroomDetails?.warning;
         setTestChatFeedback({
-          type: 'success',
-          message: `✅ Test message delivered to Kick channel chat (@${data.channelSlug || channelSlug || 'frixen1'})! Bot writing is working!`,
+          type: warning ? 'warning' : 'success',
+          message: `✅ Test message submitted to Kick chat (@${data.channelSlug || channelSlug || 'frixen1'}) as "${type}"! (Kick API returned 200 OK)`,
+          details: warning || 'Message confirmed sent by Kick API. If you have Followers-Only chat active, ensure your bot account is modded (/mod <BotUsername>) or follows your channel.',
         });
       } else {
         setTestChatFeedback({
@@ -532,21 +535,45 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <button
               type="button"
               disabled={isTestingChat}
-              onClick={handleSendTestMessage}
+              onClick={() => handleSendTestMessage('bot')}
               className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center space-x-2 transition-all shadow-md shadow-purple-600/20 disabled:opacity-60 cursor-pointer"
             >
               {isTestingChat ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  <span>Sending Test Message...</span>
+                  <span>Sending...</span>
                 </>
               ) : (
                 <>
                   <MessageSquare className="w-4 h-4" />
-                  <span>Send 1 Test Message to Chat</span>
+                  <span>Send Test (as [BOT])</span>
                 </>
               )}
             </button>
+
+            <button
+              type="button"
+              disabled={isTestingChat}
+              onClick={() => handleSendTestMessage('user')}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center space-x-2 transition-all shadow-md shadow-blue-600/20 disabled:opacity-60 cursor-pointer"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Send Test (as User)</span>
+            </button>
+          </div>
+
+          {/* Important Kick Chatroom Rule for Bots */}
+          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs space-y-1.5">
+            <div className="flex items-center space-x-2 font-bold text-amber-200">
+              <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <span>Important Kick Chatroom Rule for Bots:</span>
+            </div>
+            <p className="text-[11px] text-neutral-300 leading-relaxed">
+              Kick chatrooms automatically enforce <strong>Followers-Only</strong> and <strong>Anti-Spam</strong> filters. If a message is sent successfully via API but does not appear on stream, Kick's chatroom dropped it because the bot account is not recognized as a moderator or follower.
+            </p>
+            <div className="text-[11px] text-amber-200 font-mono bg-black/40 p-2 rounded-lg border border-amber-500/20">
+              Type in your stream chat (<span className="text-[#53fc18]">kick.com/{channelSlug || 'frixen1'}</span>): <span className="text-white font-bold">/mod @FrxGiveaways</span> (or your bot account username)
+            </div>
           </div>
 
           {/* Test Chat Result Alert */}
@@ -555,12 +582,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               className={`p-3.5 rounded-xl text-xs flex flex-col space-y-1 border ${
                 testChatFeedback.type === 'success'
                   ? 'bg-[#53fc18]/10 text-[#53fc18] border-[#53fc18]/30'
+                  : testChatFeedback.type === 'warning'
+                  ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
                   : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
               }`}
             >
               <div className="flex items-center space-x-2">
                 {testChatFeedback.type === 'success' ? (
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[#53fc18]" />
+                ) : testChatFeedback.type === 'warning' ? (
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-400" />
                 ) : (
                   <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-400" />
                 )}

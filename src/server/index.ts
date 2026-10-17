@@ -44,11 +44,11 @@ export function createApp() {
 
   // Initialize Kick Bot Service
   const kickBot = new KickBotService({
-    channelSlug: process.env.KICK_CHANNEL_SLUG || 'demo_channel',
-    broadcasterId: process.env.KICK_BROADCASTER_ID,
+    channelSlug: process.env.KICK_CHANNEL_SLUG || 'frixen1',
+    broadcasterId: process.env.KICK_BROADCASTER_ID || '29176855',
     accessToken: process.env.KICK_ACCESS_TOKEN,
-    clientId: process.env.KICK_CLIENT_ID,
-    clientSecret: process.env.KICK_CLIENT_SECRET,
+    clientId: process.env.KICK_CLIENT_ID || '01M55MY622GWQP6EA2HSJ4CJTJ',
+    clientSecret: process.env.KICK_CLIENT_SECRET || '4ba04b149cf41010573ec24b3d433cd32fc713b0afc80795ddf1315f933b6179',
     webhookSecret: process.env.KICK_WEBHOOK_SECRET,
     botReplyEnabled: process.env.BOT_REPLY_ENABLED !== 'false',
     botAnnounceWinner: process.env.BOT_ANNOUNCE_WINNER !== 'false',

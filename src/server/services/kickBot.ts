@@ -325,9 +325,9 @@ export class KickBotService extends EventEmitter {
   /**
    * Send 1 direct message to verify the bot can write to the Kick live chat
    */
-  public async sendDirectChatMessage(content: string): Promise<{ success: boolean; status?: number; error?: string; data?: any }> {
+  public async sendDirectChatMessage(content: string, preferredType?: 'bot' | 'user'): Promise<{ success: boolean; status?: number; error?: string; data?: any; typeUsed?: string }> {
     const broadcasterId = this.config.broadcasterId || this.state.broadcasterId || '29176855';
-    const result = await this.apiClient.sendChatMessage(broadcasterId, content);
+    const result = await this.apiClient.sendChatMessage(broadcasterId, content, preferredType);
     this.lastOutboundTime = Date.now();
     this.emit('botReplySent', {
       id: `bot-${Date.now()}`,
@@ -338,7 +338,7 @@ export class KickBotService extends EventEmitter {
       deliveredViaApi: result.success,
       error: result.error,
     });
-    return result;
+    return { ...result, typeUsed: preferredType || 'bot' };
   }
 
   /**
