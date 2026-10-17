@@ -221,8 +221,8 @@ export class KickApiClient {
       const cleanContent = content.slice(0, 500);
       const bId = broadcasterUserId ? Number(broadcasterUserId) : 29176855;
 
-      // Determine sender type: 'bot' (official Kick Developer bot badge) or 'user'
-      const primaryType = preferredType || 'bot';
+      // Determine sender type: 'user' by default for guaranteed live chat delivery
+      const primaryType = preferredType || 'user';
       const payloadPrimary = {
         type: primaryType,
         content: cleanContent,
