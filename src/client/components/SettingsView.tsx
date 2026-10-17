@@ -50,6 +50,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isAuthorizing, setIsAuthorizing] = useState(false);
 
   const handleConnectKick = async () => {
     const targetSlug = channelSlug.trim().replace(/^@/, '');
@@ -434,28 +435,34 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="pt-2 flex flex-wrap items-center gap-3">
             <button
               type="button"
+              disabled={isAuthorizing}
               onClick={async () => {
-                const targetClientId = clientId.trim() || appSettings.kickClientId;
-                if (!targetClientId) {
-                  alert('Please enter your Client ID first, then click Authorize.');
-                  return;
-                }
-                setIsSaving(true);
+                const targetClientId = clientId.trim() || appSettings.kickClientId || '01M55MY622GWQP6EA2HSJ4CJTJ';
+                setIsAuthorizing(true);
                 try {
                   await onSaveSettings({
+                    kickChannelSlug: channelSlug.trim() || undefined,
                     kickClientId: targetClientId,
                     kickClientSecret: clientSecret.trim() || undefined,
                   });
-                  window.location.href = `/api/kick/authorize?client_id=${encodeURIComponent(targetClientId)}`;
-                } catch (err: any) {
-                  setFeedback({ type: 'error', message: err.message });
-                  setIsSaving(false);
+                } catch (err) {
+                  console.warn('Pre-save notice:', err);
                 }
+                window.location.href = `/api/kick/authorize?client_id=${encodeURIComponent(targetClientId)}`;
               }}
-              className="px-4 py-2.5 rounded-xl bg-[#53fc18] hover:bg-[#45d914] text-black font-bold text-xs flex items-center space-x-2 transition-all shadow-md shadow-[#53fc18]/20"
+              className="px-4 py-2.5 rounded-xl bg-[#53fc18] hover:bg-[#45d914] text-black font-bold text-xs flex items-center space-x-2 transition-all shadow-md shadow-[#53fc18]/20 disabled:opacity-60 cursor-pointer"
             >
-              <KeyRound className="w-4 h-4 stroke-[2.5]" />
-              <span>Authorize with Kick (1-Click)</span>
+              {isAuthorizing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  <span>Redirecting to Kick...</span>
+                </>
+              ) : (
+                <>
+                  <KeyRound className="w-4 h-4 stroke-[2.5]" />
+                  <span>Authorize with Kick (1-Click)</span>
+                </>
+              )}
             </button>
 
             <button
@@ -463,13 +470,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               onClick={async () => {
                 try {
                   setIsSaving(true);
-                  // Save settings first if modified
-                  if (clientSecret || clientId) {
-                    await onSaveSettings({
-                      kickClientId: clientId.trim(),
-                      kickClientSecret: clientSecret.trim() || undefined,
-                    });
-                  }
+                  await onSaveSettings({
+                    kickChannelSlug: channelSlug.trim() || undefined,
+                    kickClientId: clientId.trim() || undefined,
+                    kickClientSecret: clientSecret.trim() || undefined,
+                  });
                   const res = await fetch('/api/kick/exchange-token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

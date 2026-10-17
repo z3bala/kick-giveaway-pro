@@ -24,6 +24,9 @@ export function createApp() {
   const app = express();
   const server = http.createServer(app);
 
+  // Trust reverse proxy (Render, Cloudflare, etc.) for secure headers and cookies
+  app.set('trust proxy', true);
+
   // Security & parsing middleware
   app.use(cors({
     origin: '*',

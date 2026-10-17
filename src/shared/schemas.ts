@@ -36,7 +36,7 @@ export const UpdateOverlaySettingsSchema = z.object({
 });
 
 export const UpdateAppSettingsSchema = z.object({
-  kickChannelSlug: z.string().min(1).max(50),
+  kickChannelSlug: z.string().max(50).optional(),
   kickBroadcasterId: z.string().optional(),
   kickClientId: z.string().optional(),
   kickClientSecret: z.string().optional(),

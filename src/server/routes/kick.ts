@@ -23,6 +23,13 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
     }
   }, 10 * 60 * 1000);
 
+  function getRedirectUri(req: any): string {
+    const host = req.get('host');
+    const isSecure = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' || host?.includes('onrender.com');
+    const protocol = isSecure ? 'https' : 'http';
+    return `${protocol}://${host}/api/kick/callback`;
+  }
+
   // 1-Click Authorize Endpoint with RFC-compliant PKCE S256
   router.get('/authorize', (req, res) => {
     const appSettings = giveawayService.getAppSettings();
@@ -44,9 +51,7 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
       return;
     }
 
-    const host = req.get('host');
-    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
-    const redirectUri = `${protocol}://${host}/api/kick/callback`;
+    const redirectUri = getRedirectUri(req);
 
     // Generate PKCE code_verifier and code_challenge
     const verifier = crypto.randomBytes(32).toString('base64url');
@@ -86,9 +91,7 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
     }
 
     if (code) {
-      const host = req.get('host');
-      const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
-      const redirectUri = `${protocol}://${host}/api/kick/callback`;
+      const redirectUri = getRedirectUri(req);
 
       const stateStr = String(state || '');
       const session = pkceSessions.get(stateStr);

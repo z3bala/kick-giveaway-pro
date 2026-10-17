@@ -46,18 +46,19 @@ export function createSettingsRouter(giveawayService: GiveawayService): Router {
         adminSecret: data.adminSecret,
       };
 
+      const current = giveawayService.getAppSettings();
       const updated = giveawayService.updateAppSettings(
         {
-          kickChannelSlug: data.kickChannelSlug,
-          kickBroadcasterId: data.kickBroadcasterId || '',
-          kickClientId: data.kickClientId || '',
-          defaultKeyword: data.defaultKeyword || '!join',
-          botReplyEnabled: data.botReplyEnabled ?? true,
-          botAnnounceWinner: data.botAnnounceWinner ?? true,
-          botChatCooldownMs: data.botChatCooldownMs ?? 1500,
-          requireFollower: data.requireFollower ?? false,
-          minAccountAgeDays: data.minAccountAgeDays ?? 0,
-          overlayToken: data.overlayToken || 'streamer-obs-overlay-key-2026',
+          kickChannelSlug: data.kickChannelSlug ?? current.kickChannelSlug,
+          kickBroadcasterId: data.kickBroadcasterId ?? current.kickBroadcasterId,
+          kickClientId: data.kickClientId ?? current.kickClientId,
+          defaultKeyword: data.defaultKeyword ?? current.defaultKeyword,
+          botReplyEnabled: data.botReplyEnabled ?? current.botReplyEnabled,
+          botAnnounceWinner: data.botAnnounceWinner ?? current.botAnnounceWinner,
+          botChatCooldownMs: data.botChatCooldownMs ?? current.botChatCooldownMs,
+          requireFollower: data.requireFollower ?? current.requireFollower,
+          minAccountAgeDays: data.minAccountAgeDays ?? current.minAccountAgeDays,
+          overlayToken: data.overlayToken ?? current.overlayToken,
         },
         secretValues
       );
