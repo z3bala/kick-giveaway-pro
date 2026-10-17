@@ -129,8 +129,8 @@ export const App: React.FC = () => {
     await api.simulateChat(username, message);
   };
 
-  const handleConnectKick = async () => {
-    await api.connectKick();
+  const handleConnectKick = async (channelSlug?: string) => {
+    return await api.connectKick(channelSlug);
   };
 
   const handleDisconnectKick = async () => {

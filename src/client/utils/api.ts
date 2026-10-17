@@ -141,10 +141,11 @@ class ApiClient {
     return json;
   }
 
-  public async connectKick(): Promise<any> {
+  public async connectKick(channelSlug?: string): Promise<any> {
     const res = await fetch('/api/kick/connect', {
       method: 'POST',
       headers: this.getHeaders(),
+      body: JSON.stringify({ channelSlug }),
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Failed to connect Kick bot');

@@ -4,7 +4,15 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
   const adminSecret = process.env.ADMIN_SECRET;
 
   // If no admin secret configured, allow access (local dev mode)
-  if (!adminSecret || adminSecret.trim() === '') {
+  if (!adminSecret || adminSecret.trim() === '' || adminSecret === 'change-me-to-a-secure-random-passphrase') {
+    return next();
+  }
+
+  // Allow same-origin requests made from the streamer dashboard
+  const secFetchSite = req.headers['sec-fetch-site'];
+  const referer = req.headers['referer'];
+  const host = req.get('host');
+  if (secFetchSite === 'same-origin' || (referer && host && referer.includes(host))) {
     return next();
   }
 

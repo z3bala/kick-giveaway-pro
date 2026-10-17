@@ -25,7 +25,7 @@ services:
       - key: KICK_ACCESS_TOKEN
         value: NWQZYTFMZJATMZHHNS0ZMTUYLTLKYZITMMEYOTQZZDA4YTK5
       - key: ADMIN_SECRET
-        generateValue: true
+        sync: false
       - key: OVERLAY_TOKEN
         generateValue: true
       - key: DATABASE_PATH

@@ -131,7 +131,20 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
   // Connect to Kick chat
   router.post('/connect', requireAdminAuth, async (req, res) => {
     try {
-      await kickBot.connect();
+      const { channelSlug, broadcasterId } = req.body || {};
+      if (channelSlug && typeof channelSlug === 'string' && channelSlug.trim()) {
+        const cleanSlug = channelSlug.trim().replace(/^@/, '');
+        giveawayService.updateAppSettings({
+          kickChannelSlug: cleanSlug,
+          kickBroadcasterId: broadcasterId ? String(broadcasterId).trim() : undefined,
+        });
+        kickBot.disconnect();
+        kickBot.updateConfig({
+          channelSlug: cleanSlug,
+          broadcasterId: broadcasterId ? String(broadcasterId).trim() : undefined,
+        });
+      }
+      await kickBot.connect(true);
       res.json({ success: true, state: kickBot.getState() });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

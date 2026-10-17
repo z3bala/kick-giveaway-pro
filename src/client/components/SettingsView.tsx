@@ -12,6 +12,7 @@ import {
   Copy,
   Check,
   Lock,
+  Loader2,
 } from 'lucide-react';
 import type { AppSettings, KickBotState } from '../../shared/types.js';
 
@@ -19,8 +20,8 @@ interface SettingsViewProps {
   appSettings: AppSettings;
   kickBot: KickBotState;
   onSaveSettings: (settings: Partial<AppSettings> & { kickClientSecret?: string; kickAccessToken?: string; adminSecret?: string }) => Promise<void>;
-  onConnectKick: () => Promise<void>;
-  onDisconnectKick: () => Promise<void>;
+  onConnectKick: (slug?: string) => Promise<any>;
+  onDisconnectKick: () => Promise<any>;
   accentColor?: string;
 }
 
@@ -45,8 +46,67 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [botChatCooldownMs, setBotChatCooldownMs] = useState(appSettings.botChatCooldownMs || 1500);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const handleConnectKick = async () => {
+    const targetSlug = channelSlug.trim().replace(/^@/, '');
+    if (!targetSlug) {
+      setFeedback({
+        type: 'error',
+        message: 'Please enter your Kick Channel Slug (username) in the field below before connecting.',
+      });
+      return;
+    }
+
+    setIsConnecting(true);
+    setFeedback(null);
+
+    try {
+      await onSaveSettings({
+        kickChannelSlug: targetSlug,
+        kickBroadcasterId: broadcasterId.trim(),
+        kickClientId: clientId.trim(),
+        kickClientSecret: clientSecret.trim() || undefined,
+        kickAccessToken: accessToken.trim() || undefined,
+      });
+
+      await onConnectKick(targetSlug);
+
+      setFeedback({
+        type: 'success',
+        message: `Successfully connected to Kick channel @${targetSlug}! The bot is active and ready.`,
+      });
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Failed to connect to Kick. Please check your username.',
+      });
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleDisconnectKick = async () => {
+    setIsDisconnecting(true);
+    setFeedback(null);
+    try {
+      await onDisconnectKick();
+      setFeedback({
+        type: 'success',
+        message: 'Disconnected from Kick live chatroom.',
+      });
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Failed to disconnect.',
+      });
+    } finally {
+      setIsDisconnecting(false);
+    }
+  };
 
   const origin = window.location.origin;
   const redirectUrl = `${origin}/api/kick/callback`;
@@ -228,18 +288,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               {kickBot.status === 'connected' ? (
                 <button
                   type="button"
-                  onClick={onDisconnectKick}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/[0.06] hover:bg-white/[0.1] text-neutral-300 border border-white/[0.08] transition-all"
+                  disabled={isDisconnecting}
+                  onClick={handleDisconnectKick}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white/[0.06] hover:bg-white/[0.1] text-neutral-300 border border-white/[0.08] transition-all disabled:opacity-50 flex items-center space-x-1.5"
                 >
-                  Disconnect
+                  {isDisconnecting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-neutral-400" />
+                      <span>Disconnecting...</span>
+                    </>
+                  ) : (
+                    <span>Disconnect</span>
+                  )}
                 </button>
               ) : (
                 <button
                   type="button"
-                  onClick={onConnectKick}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#53fc18] hover:bg-[#45d914] text-black shadow-sm shadow-[#53fc18]/20 transition-all"
+                  disabled={isConnecting || kickBot.status === 'connecting'}
+                  onClick={handleConnectKick}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-[#53fc18] hover:bg-[#45d914] text-black shadow-md shadow-[#53fc18]/25 transition-all disabled:opacity-60 flex items-center space-x-1.5"
                 >
-                  Connect Now
+                  {isConnecting || kickBot.status === 'connecting' ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
+                      <span>Connecting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Radio className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <span>Connect Now</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
