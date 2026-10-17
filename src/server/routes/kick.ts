@@ -13,9 +13,61 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
     res.json(kickBot.getState());
   });
 
+  const pkceSessions = new Map<string, { verifier: string; expires: number }>();
+
+  // Clean expired PKCE sessions every 10 mins
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, val] of pkceSessions.entries()) {
+      if (val.expires < now) pkceSessions.delete(key);
+    }
+  }, 10 * 60 * 1000);
+
+  // 1-Click Authorize Endpoint with RFC-compliant PKCE S256
+  router.get('/authorize', (req, res) => {
+    const appSettings = giveawayService.getAppSettings();
+    const clientId = (req.query.client_id as string)?.trim() || appSettings.kickClientId || process.env.KICK_CLIENT_ID;
+
+    if (!clientId) {
+      res.status(400).send(`
+        <!DOCTYPE html>
+        <html>
+          <body style="background:#090d16;color:#ffffff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+            <div style="background:#131826;padding:32px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);max-width:440px;text-align:center;">
+              <h2 style="color:#f43f5e;margin-top:0;">Client ID Required</h2>
+              <p style="color:#94a3b8;font-size:14px;">Please enter and save your Client ID in Settings first.</p>
+              <a href="/settings" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#53fc18;color:#000;text-decoration:none;font-weight:bold;border-radius:8px;">Back to Settings</a>
+            </div>
+          </body>
+        </html>
+      `);
+      return;
+    }
+
+    const host = req.get('host');
+    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+    const redirectUri = `${protocol}://${host}/api/kick/callback`;
+
+    // Generate PKCE code_verifier and code_challenge
+    const verifier = crypto.randomBytes(32).toString('base64url');
+    const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+    const state = crypto.randomBytes(16).toString('hex');
+
+    // Store verifier for 15 minutes
+    pkceSessions.set(state, { verifier, expires: Date.now() + 15 * 60 * 1000 });
+
+    const kickAuthUrl = `https://id.kick.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(
+      clientId
+    )}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(
+      'chat:write channel:read user:read'
+    )}&code_challenge=${challenge}&code_challenge_method=S256&state=${state}`;
+
+    res.redirect(kickAuthUrl);
+  });
+
   // OAuth Redirect URL callback from Kick Developer Portal
   router.get('/callback', async (req, res) => {
-    const { code, error, error_description } = req.query;
+    const { code, state, error, error_description } = req.query;
     if (error) {
       res.send(`
         <!DOCTYPE html>
@@ -38,8 +90,13 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
       const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
       const redirectUri = `${protocol}://${host}/api/kick/callback`;
 
+      const stateStr = String(state || '');
+      const session = pkceSessions.get(stateStr);
+      const codeVerifier = session?.verifier;
+      if (stateStr) pkceSessions.delete(stateStr);
+
       try {
-        const token = await kickBot.getApiClient().exchangeAuthCode(String(code), redirectUri);
+        const token = await kickBot.getApiClient().exchangeAuthCode(String(code), redirectUri, codeVerifier);
         if (token) {
           giveawayService.updateAppSettings({}, { accessToken: token });
           res.redirect('/settings?oauth_success=true');

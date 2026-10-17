@@ -70,20 +70,26 @@ export class KickApiClient {
   /**
    * Exchange OAuth authorization code for User Access Token (chat:write scope)
    */
-  public async exchangeAuthCode(code: string, redirectUri: string): Promise<string | null> {
+  public async exchangeAuthCode(code: string, redirectUri: string, codeVerifier?: string): Promise<string | null> {
     if (!this.clientId || !this.clientSecret) {
       console.warn('[KickApiClient] Missing clientId or clientSecret for code exchange.');
       return null;
     }
 
     try {
-      const body = new URLSearchParams({
+      const params: Record<string, string> = {
         grant_type: 'authorization_code',
         client_id: this.clientId,
         client_secret: this.clientSecret,
         code,
         redirect_uri: redirectUri,
-      });
+      };
+
+      if (codeVerifier) {
+        params.code_verifier = codeVerifier;
+      }
+
+      const body = new URLSearchParams(params);
 
       const res = await fetch('https://id.kick.com/oauth/token', {
         method: 'POST',

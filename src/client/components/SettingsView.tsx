@@ -359,14 +359,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="pt-2 flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 const targetClientId = clientId.trim() || appSettings.kickClientId;
                 if (!targetClientId) {
                   alert('Please enter your Client ID first, then click Authorize.');
                   return;
                 }
-                const authUrl = `https://id.kick.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(targetClientId)}&redirect_uri=${encodeURIComponent(redirectUrl)}&scope=chat:write%20channel:read%20user:read`;
-                window.location.href = authUrl;
+                setIsSaving(true);
+                try {
+                  await onSaveSettings({
+                    kickClientId: targetClientId,
+                    kickClientSecret: clientSecret.trim() || undefined,
+                  });
+                  window.location.href = `/api/kick/authorize?client_id=${encodeURIComponent(targetClientId)}`;
+                } catch (err: any) {
+                  setFeedback({ type: 'error', message: err.message });
+                  setIsSaving(false);
+                }
               }}
               className="px-4 py-2.5 rounded-xl bg-[#53fc18] hover:bg-[#45d914] text-black font-bold text-xs flex items-center space-x-2 transition-all shadow-md shadow-[#53fc18]/20"
             >
