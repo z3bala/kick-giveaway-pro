@@ -2,16 +2,16 @@ import React, { useState } from 'react';
 import {
   Play,
   Square,
-  Sparkles,
+  Crosshair,
   RotateCcw,
-  PlusCircle,
+  Plus,
   Megaphone,
   CheckCircle2,
   AlertTriangle,
   Gift,
   KeyRound,
   FileText,
-  Clock,
+  Layers,
 } from 'lucide-react';
 import type { Giveaway, Participant, OverlaySettings } from '../../shared/types.js';
 
@@ -41,8 +41,8 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
   onRevealWinner,
   onOpenResetConfirmModal,
 }) => {
-  const [newTitle, setNewTitle] = useState('Sub Sunday Giveaway');
-  const [newPrize, setNewPrize] = useState('$50 Steam Gift Card');
+  const [newTitle, setNewTitle] = useState('Championship Knife Giveaway');
+  const [newPrize, setNewPrize] = useState('M9 Bayonet | Fade (Factory New)');
   const [newKeyword, setNewKeyword] = useState('!join');
   const [customKeyword, setCustomKeyword] = useState('');
   const [isEditingKeyword, setIsEditingKeyword] = useState(false);
@@ -63,7 +63,7 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
     setFeedback(null);
     try {
       await onCreateGiveaway(newTitle, newPrize, newKeyword);
-      setFeedback({ type: 'success', message: 'Giveaway created successfully!' });
+      setFeedback({ type: 'success', message: 'Giveaway manifest initialized successfully.' });
     } catch (err: any) {
       setFeedback({ type: 'error', message: err.message });
     } finally {
@@ -85,16 +85,18 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Giveaway Controls</h2>
-        <p className="text-sm text-neutral-400">
-          Create, manage lifecycle states, and trigger CS-style rolls for your Kick channel.
+      <div className="pb-4 border-b border-[#1b1f2e]">
+        <h2 className="text-xl font-black text-white tracking-wider uppercase telemetry">
+          Master Control Deck
+        </h2>
+        <p className="text-xs text-neutral-400 mt-0.5">
+          Authoritative state machine, registration triggers, and CS2 case-opening roll engagement.
         </p>
       </div>
 
       {feedback && (
         <div
-          className={`p-4 rounded-xl text-xs font-medium border flex items-center space-x-2 animate-fade-in ${
+          className={`p-3.5 rounded-lg text-xs telemetry font-medium border flex items-center space-x-2 animate-fade-in ${
             feedback.type === 'success'
               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
               : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
@@ -109,73 +111,73 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
         </div>
       )}
 
-      {/* Main Section: Either Active Giveaway Controls or New Giveaway Creation Form */}
+      {/* Main Section: Either Active Giveaway Controls or New Creation Form */}
       {giveaway ? (
-        <div className="space-y-6">
-          {/* Active Giveaway Status Card */}
-          <div className="p-6 rounded-2xl bg-brand-surface border border-brand-border space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-brand-border">
+        <div className="space-y-5">
+          {/* Active Manifest Deck */}
+          <div className="p-5 rounded-xl tactical-surface space-y-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#1b202e]">
               <div>
                 <div className="flex items-center space-x-3">
-                  <h3 className="text-xl font-bold text-white">{giveaway.title}</h3>
+                  <h3 className="text-lg font-bold text-white tracking-wide">{giveaway.title}</h3>
                   <span
-                    className={`text-xs font-mono uppercase px-2.5 py-1 rounded-full font-bold border ${
+                    className={`text-[10px] telemetry uppercase px-2 py-0.5 rounded font-bold border ${
                       isOpen
-                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse-subtle'
+                        ? 'bg-[#53fc18]/15 text-[#53fc18] border-[#53fc18]/30 led-beacon'
                         : isClosed
-                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                        ? 'bg-amber-400/15 text-amber-300 border-amber-400/30'
                         : isDrawing
-                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/30 animate-pulse'
+                        ? 'bg-rose-500/15 text-rose-400 border-rose-500/30 animate-pulse'
                         : isCompleted
-                        ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                        ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
                         : 'bg-neutral-800 text-neutral-400'
                     }`}
                   >
-                    {status.toUpperCase()}
+                    STATE: {status.toUpperCase()}
                   </span>
                 </div>
-                <div className="flex items-center space-x-4 mt-2 text-xs text-neutral-400">
+                <div className="flex items-center space-x-3 mt-1.5 text-xs text-neutral-400 telemetry">
                   <span className="flex items-center space-x-1">
                     <Gift className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Prize: <strong className="text-white">{giveaway.prize}</strong></span>
+                    <span>PRIZE: <strong className="text-white font-sans">{giveaway.prize}</strong></span>
                   </span>
                   <span>•</span>
-                  <span>Entrants: <strong className="text-white font-mono">{giveaway.participantCount}</strong></span>
+                  <span>ENTRANTS: <strong className="text-white font-bold">{giveaway.participantCount}</strong></span>
                   <span>•</span>
-                  <span className="font-mono text-neutral-500">ID: {giveaway.id}</span>
+                  <span className="text-neutral-400">ID: {giveaway.id.slice(0, 14)}</span>
                 </div>
               </div>
 
-              {/* Keyword Editor */}
-              <div className="flex items-center space-x-2 bg-brand-surface2 px-3 py-2 rounded-xl border border-brand-border">
-                <KeyRound className="w-4 h-4 text-neutral-400" />
+              {/* Inline Keyword Editor */}
+              <div className="flex items-center space-x-2 bg-[#121622] px-3 py-1.5 rounded-lg border border-[#1e2436]">
+                <KeyRound className="w-3.5 h-3.5 text-neutral-400" />
                 {isEditingKeyword ? (
                   <div className="flex items-center space-x-2">
                     <input
                       type="text"
                       value={customKeyword}
                       onChange={(e) => setCustomKeyword(e.target.value)}
-                      placeholder="!newword"
-                      className="bg-brand-surface3 px-2 py-1 rounded text-xs font-mono text-white border border-brand-border focus:outline-none w-28"
+                      placeholder="!keyword"
+                      className="bg-[#181d2a] px-2 py-1 rounded text-xs telemetry text-white border border-[#2b334a] focus:outline-none w-28"
                     />
                     <button
                       onClick={handleKeywordSave}
-                      className="px-2 py-1 rounded bg-emerald-600 text-[11px] font-bold text-white"
+                      className="px-2 py-1 rounded bg-emerald-600 text-[10px] telemetry font-bold text-white uppercase"
                     >
-                      Save
+                      SAVE
                     </button>
                     <button
                       onClick={() => setIsEditingKeyword(false)}
-                      className="px-2 py-1 rounded bg-neutral-700 text-[11px] text-neutral-300"
+                      className="px-2 py-1 rounded bg-neutral-700 text-[10px] telemetry text-neutral-300 uppercase"
                     >
-                      Cancel
+                      CANCEL
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
-                    <span className="text-xs text-neutral-400">Keyword:</span>
+                    <span className="text-[11px] telemetry text-neutral-400 uppercase">Trigger:</span>
                     <span
-                      className="text-xs font-mono font-bold px-2 py-0.5 rounded text-white"
+                      className="text-xs telemetry font-bold px-2 py-0.5 rounded text-white"
                       style={{ backgroundColor: overlaySettings.accentColor }}
                     >
                       {giveaway.keyword}
@@ -185,9 +187,9 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
                         setCustomKeyword(giveaway.keyword);
                         setIsEditingKeyword(true);
                       }}
-                      className="text-[11px] text-neutral-400 hover:text-white underline ml-1"
+                      className="text-[10px] telemetry text-neutral-400 hover:text-white underline ml-1"
                     >
-                      Edit
+                      EDIT
                     </button>
                   </div>
                 )}
@@ -195,208 +197,212 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
             </div>
 
             {/* Lifecycle Phase Progression Stepper */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
               <div
-                className={`p-3 rounded-xl border ${
+                className={`p-3 rounded-lg border ${
                   isOpen
                     ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300 font-semibold'
-                    : 'bg-brand-surface2 border-brand-border text-neutral-400'
+                    : 'bg-[#11141e] border-[#1c2232] text-neutral-400'
                 }`}
               >
-                <div className="font-mono font-bold text-[10px] text-neutral-500 uppercase">Step 1</div>
-                <div className="mt-1 font-bold">1. Registration Open</div>
-                <div className="text-[11px] text-neutral-400 mt-0.5">Viewers type {giveaway.keyword}</div>
+                <div className="telemetry font-bold text-[9px] text-neutral-400 uppercase">PHASE 01</div>
+                <div className="mt-0.5 font-bold telemetry text-xs">1. REGISTRATION OPEN</div>
+                <div className="text-[10px] text-neutral-400 mt-0.5">Chat entrants accepted</div>
               </div>
 
               <div
-                className={`p-3 rounded-xl border ${
+                className={`p-3 rounded-lg border ${
                   isClosed
-                    ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 font-semibold'
-                    : 'bg-brand-surface2 border-brand-border text-neutral-400'
+                    ? 'bg-amber-400/10 border-amber-400/40 text-amber-300 font-semibold'
+                    : 'bg-[#11141e] border-[#1c2232] text-neutral-400'
                 }`}
               >
-                <div className="font-mono font-bold text-[10px] text-neutral-500 uppercase">Step 2</div>
-                <div className="mt-1 font-bold">2. Registration Closed</div>
-                <div className="text-[11px] text-neutral-400 mt-0.5">Entrants list frozen</div>
+                <div className="telemetry font-bold text-[9px] text-neutral-400 uppercase">PHASE 02</div>
+                <div className="mt-0.5 font-bold telemetry text-xs">2. ROSTER FROZEN</div>
+                <div className="text-[10px] text-neutral-400 mt-0.5">Pool locked for draw</div>
               </div>
 
               <div
-                className={`p-3 rounded-xl border ${
+                className={`p-3 rounded-lg border ${
                   isDrawing
                     ? 'bg-rose-500/10 border-rose-500/40 text-rose-300 font-semibold'
-                    : 'bg-brand-surface2 border-brand-border text-neutral-400'
+                    : 'bg-[#11141e] border-[#1c2232] text-neutral-400'
                 }`}
               >
-                <div className="font-mono font-bold text-[10px] text-neutral-500 uppercase">Step 3</div>
-                <div className="mt-1 font-bold">3. CS-Style Roll</div>
-                <div className="text-[11px] text-neutral-400 mt-0.5">OBS horizontal animation</div>
+                <div className="telemetry font-bold text-[9px] text-neutral-400 uppercase">PHASE 03</div>
+                <div className="mt-0.5 font-bold telemetry text-xs">3. CS2 ROULETTE</div>
+                <div className="text-[10px] text-neutral-400 mt-0.5">OBS roll engaged</div>
               </div>
 
               <div
-                className={`p-3 rounded-xl border ${
+                className={`p-3 rounded-lg border ${
                   isCompleted
                     ? 'bg-blue-500/10 border-blue-500/40 text-blue-300 font-semibold'
-                    : 'bg-brand-surface2 border-brand-border text-neutral-400'
+                    : 'bg-[#11141e] border-[#1c2232] text-neutral-400'
                 }`}
               >
-                <div className="font-mono font-bold text-[10px] text-neutral-500 uppercase">Step 4</div>
-                <div className="mt-1 font-bold">4. Winner Reveal</div>
-                <div className="text-[11px] text-neutral-400 mt-0.5">
-                  {giveaway.winnerUsername ? `@${giveaway.winnerUsername}` : 'Chat announcement'}
+                <div className="telemetry font-bold text-[9px] text-neutral-400 uppercase">PHASE 04</div>
+                <div className="mt-0.5 font-bold telemetry text-xs">4. VICTOR DECLARED</div>
+                <div className="text-[10px] text-neutral-400 mt-0.5">
+                  {giveaway.winnerUsername ? `@${giveaway.winnerUsername}` : 'Ledger updated'}
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons Toolbar */}
-            <div className="pt-4 flex flex-wrap items-center gap-3">
-              {/* Action: Open Entries */}
+            {/* Tactical Action Switches */}
+            <div className="pt-3 flex flex-wrap items-center gap-2.5">
+              {/* Arm Entries */}
               {!isOpen && !isDrawing && !isCompleted && (
                 <button
                   onClick={onOpenEntries}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center space-x-2 shadow-md transition-all"
+                  className="px-5 py-2.5 rounded-lg text-xs telemetry font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center space-x-2 shadow-sm transition-all uppercase"
                 >
-                  <Play className="w-4 h-4 fill-current" />
-                  <span>Open Entries ({giveaway.keyword})</span>
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>ARM REGISTRATION ({giveaway.keyword})</span>
                 </button>
               )}
 
-              {/* Action: Close Entries */}
+              {/* Close Entries */}
               {isOpen && (
                 <button
                   onClick={onCloseEntries}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white flex items-center space-x-2 shadow-md transition-all"
+                  className="px-5 py-2.5 rounded-lg text-xs telemetry font-bold bg-amber-600 hover:bg-amber-500 text-white flex items-center space-x-2 shadow-sm transition-all uppercase"
                 >
-                  <Square className="w-4 h-4 fill-current" />
-                  <span>Close Registration</span>
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                  <span>FREEZE REGISTRATION</span>
                 </button>
               )}
 
-              {/* Action: Start CS Roll */}
+              {/* Engage CS2 Roll */}
               {(isClosed || isOpen) && (
                 <button
                   onClick={onStartDraw}
                   disabled={giveaway.participantCount === 0 || isDrawing}
-                  className={`px-6 py-2.5 rounded-xl text-xs font-bold text-white flex items-center space-x-2 shadow-lg transition-all ${
+                  className={`px-6 py-2.5 rounded-lg text-xs telemetry font-bold text-white flex items-center space-x-2 shadow-sm transition-all uppercase ${
                     giveaway.participantCount === 0 || isDrawing
                       ? 'opacity-40 cursor-not-allowed bg-neutral-700'
-                      : 'hover:brightness-110 glow-accent'
+                      : 'hover:brightness-110'
                   }`}
                   style={{ backgroundColor: overlaySettings.accentColor }}
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Start CS Roll ({giveaway.participantCount} Entrants)</span>
+                  <Crosshair className="w-4 h-4" />
+                  <span>ENGAGE CS2 ROLL ({giveaway.participantCount} ENTRANTS)</span>
                 </button>
               )}
 
-              {/* Action: Reveal & Announce Winner */}
+              {/* Reveal & Broadcast in Chat */}
               {isDrawing && (
                 <button
                   onClick={onRevealWinner}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center space-x-2 shadow-md transition-all"
+                  className="px-5 py-2.5 rounded-lg text-xs telemetry font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center space-x-2 shadow-sm transition-all uppercase"
                 >
-                  <Megaphone className="w-4 h-4" />
-                  <span>Reveal & Announce In Chat</span>
+                  <Megaphone className="w-3.5 h-3.5" />
+                  <span>BROADCAST TO KICK CHAT</span>
                 </button>
               )}
 
-              {/* Action: Reset for next giveaway */}
+              {/* Reset Manifest */}
               <button
                 onClick={onOpenResetConfirmModal}
-                className="px-4 py-2.5 rounded-xl text-xs font-medium text-neutral-400 hover:text-white bg-brand-surface2 hover:bg-brand-surface3 border border-brand-border flex items-center space-x-2 transition-all ml-auto"
+                className="px-4 py-2.5 rounded-lg text-xs telemetry font-semibold text-neutral-400 hover:text-white bg-[#141722] hover:bg-[#1b202f] border border-[#23293c] flex items-center space-x-2 transition-all ml-auto uppercase"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset for Next Giveaway</span>
+                <span>RESET MANIFEST</span>
               </button>
             </div>
           </div>
 
-          {/* Winner Celebration Box if Completed */}
+          {/* Victor Banner if Completed */}
           {isCompleted && giveaway.winnerUsername && (
-            <div className="p-6 rounded-2xl bg-gradient-to-r from-neutral-900 to-neutral-950 border-2 border-emerald-500/40 shadow-xl flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-                  <Sparkles className="w-7 h-7" />
+            <div className="p-5 rounded-xl bg-gradient-to-r from-[#0d1512] to-[#0a1012] border border-emerald-500/30 flex items-center justify-between">
+              <div className="flex items-center space-x-3.5">
+                <div className="w-12 h-12 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <Trophy className="w-6 h-6" />
                 </div>
                 <div>
-                  <div className="text-xs uppercase font-mono tracking-wider text-emerald-400 font-bold">
-                    Official Giveaway Winner
+                  <div className="text-[10px] uppercase telemetry tracking-wider text-emerald-400 font-bold">
+                    OFFICIAL DRAW WINNER
                   </div>
-                  <div className="text-2xl font-black text-white">@{giveaway.winnerUsername}</div>
+                  <div className="text-2xl font-black text-white telemetry">
+                    @{giveaway.winnerUsername}
+                  </div>
                   <div className="text-xs text-neutral-400">
-                    Prize: {giveaway.prize} • Saved to persistent history
+                    Prize: {giveaway.prize} • Archived in ledger
                   </div>
                 </div>
               </div>
 
               <button
                 onClick={onOpenResetConfirmModal}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-md hover:brightness-110 transition-all"
+                className="px-4 py-2 rounded-lg text-xs telemetry font-bold text-white shadow-sm hover:brightness-110 transition-all uppercase"
                 style={{ backgroundColor: overlaySettings.accentColor }}
               >
-                Start Another Giveaway
+                NEW GIVEAWAY
               </button>
             </div>
           )}
         </div>
       ) : (
-        /* Form: Create New Giveaway */
-        <div className="p-6 rounded-2xl bg-brand-surface border border-brand-border max-w-2xl">
-          <div className="flex items-center space-x-3 mb-6">
+        /* Form: Create New Manifest */
+        <div className="p-5 rounded-xl tactical-surface max-w-2xl">
+          <div className="flex items-center space-x-3 mb-5">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-md"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm"
               style={{ backgroundColor: overlaySettings.accentColor }}
             >
-              <PlusCircle className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Create a New Giveaway</h3>
+              <h3 className="text-sm font-bold text-white uppercase telemetry tracking-wider">
+                Initialize Giveaway Manifest
+              </h3>
               <p className="text-xs text-neutral-400">
-                Configure your prize, giveaway title, and chat entry keyword.
+                Configure your prize, title, and chat trigger command.
               </p>
             </div>
           </div>
 
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
-              <label className="block text-xs font-mono uppercase text-neutral-400 mb-1 font-semibold">
+              <label className="block text-[11px] telemetry uppercase text-neutral-400 mb-1 font-bold">
                 Giveaway Title
               </label>
               <div className="relative">
-                <FileText className="w-4 h-4 text-neutral-500 absolute left-3.5 top-3" />
+                <FileText className="w-4 h-4 text-neutral-500 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   required
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="e.g. 5,000 Followers Celebration Giveaway"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-brand-surface2 border border-brand-border text-white text-sm focus:outline-none focus:border-neutral-500 transition-colors"
+                  placeholder="e.g. Championship Finals Knife Giveaway"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#11141e] border border-[#1e2436] text-white text-xs focus:outline-none focus:border-neutral-400 transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-mono uppercase text-neutral-400 mb-1 font-semibold">
-                Prize Description
+              <label className="block text-[11px] telemetry uppercase text-neutral-400 mb-1 font-bold">
+                Prize Manifest
               </label>
               <div className="relative">
-                <Gift className="w-4 h-4 text-neutral-500 absolute left-3.5 top-3" />
+                <Gift className="w-4 h-4 text-neutral-500 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   required
                   value={newPrize}
                   onChange={(e) => setNewPrize(e.target.value)}
-                  placeholder="e.g. $50 Steam Gift Card / 5 Subscriptions"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-brand-surface2 border border-brand-border text-white text-sm focus:outline-none focus:border-neutral-500 transition-colors"
+                  placeholder="e.g. Karambit Doppler / $100 Steam Card"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#11141e] border border-[#1e2436] text-white text-xs focus:outline-none focus:border-neutral-400 transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-mono uppercase text-neutral-400 mb-1 font-semibold">
-                Chat Entry Keyword (Must start with !)
+              <label className="block text-[11px] telemetry uppercase text-neutral-400 mb-1 font-bold">
+                Chat Trigger Keyword (Must begin with !)
               </label>
               <div className="relative">
-                <KeyRound className="w-4 h-4 text-neutral-500 absolute left-3.5 top-3" />
+                <KeyRound className="w-4 h-4 text-neutral-500 absolute left-3 top-2.5" />
                 <input
                   type="text"
                   required
@@ -404,22 +410,22 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
                   onChange={(e) => setNewKeyword(e.target.value)}
                   placeholder="!join"
                   pattern="^![a-zA-Z0-9_-]+$"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-brand-surface2 border border-brand-border text-white text-sm font-mono focus:outline-none focus:border-neutral-500 transition-colors"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#11141e] border border-[#1e2436] text-white text-xs telemetry focus:outline-none focus:border-neutral-400 transition-colors"
                 />
               </div>
-              <p className="text-[11px] text-neutral-500 mt-1">
-                Viewers will type this exact keyword in your Kick channel chat to enter.
+              <p className="text-[10px] telemetry text-neutral-400 mt-1">
+                Viewers type this exact trigger in your Kick chat to enter.
               </p>
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 rounded-xl text-xs font-bold text-white shadow-lg hover:brightness-110 transition-all flex items-center justify-center space-x-2 mt-4"
+              className="w-full py-2.5 rounded-lg text-xs telemetry font-bold text-white shadow-sm hover:brightness-110 transition-all flex items-center justify-center space-x-2 mt-4 uppercase tracking-wider"
               style={{ backgroundColor: overlaySettings.accentColor }}
             >
-              <PlusCircle className="w-4 h-4" />
-              <span>{isSubmitting ? 'Creating...' : 'Create Giveaway'}</span>
+              <Plus className="w-4 h-4" />
+              <span>{isSubmitting ? 'INITIALIZING...' : 'INITIALIZE MANIFEST'}</span>
             </button>
           </form>
         </div>

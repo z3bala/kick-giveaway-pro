@@ -16,17 +16,19 @@ export const NameRoll: React.FC<NameRollProps> = ({
   durationSec = 7.5,
   soundEnabled = true,
   soundVolume = 0.8,
-  accentColor = '#e11d48',
+  accentColor = '#e63946',
   onComplete,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
   const [isFinished, setIsFinished] = useState(false);
-  const [winnerRevealed, setWinnerRevealed] = useState(false);
 
-  const CARD_WIDTH = 180;
-  const CARD_GAP = 16;
+  const CARD_WIDTH = 190;
+  const CARD_GAP = 14;
   const STRIDE = CARD_WIDTH + CARD_GAP;
+
+  // CS tier colors for visual variety across the roulette
+  const tierColors = ['#eb4b4b', '#d32ce6', '#8847ff', '#4b69ff'];
 
   useEffect(() => {
     sfx.setConfig(soundEnabled, soundVolume);
@@ -38,11 +40,9 @@ export const NameRoll: React.FC<NameRollProps> = ({
     const viewportWidth = container.clientWidth || 1000;
     const targetIdx = drawData.targetIndex;
 
-    // Center of target card relative to strip start
     const cardCenter = targetIdx * STRIDE + CARD_WIDTH / 2;
-    // Slight organic offset within card boundary (-18px to +18px)
-    const organicOffset = ((drawData.startedAt % 37) - 18);
-    const finalDistance = cardCenter - (viewportWidth / 2) + organicOffset;
+    const organicOffset = (drawData.startedAt % 33) - 16;
+    const finalDistance = cardCenter - viewportWidth / 2 + organicOffset;
 
     let animFrame: number;
     const startTime = performance.now();
@@ -50,9 +50,9 @@ export const NameRoll: React.FC<NameRollProps> = ({
 
     let lastTickCardIndex = -1;
 
-    // Natural deceleration easing (accelerates quickly then long smooth glide)
+    // Authentic CS case-opening deceleration curve
     const easeOutGlide = (t: number): number => {
-      return 1 - Math.pow(1 - t, 4.2);
+      return 1 - Math.pow(1 - t, 4.3);
     };
 
     const animate = (currentTime: number) => {
@@ -65,7 +65,7 @@ export const NameRoll: React.FC<NameRollProps> = ({
         strip.style.transform = `translate3d(-${currentX}px, 0, 0)`;
       }
 
-      // Check current card passing center for tick sound
+      // Check card passing center reticle for mechanical click
       const currentCenterPos = currentX + viewportWidth / 2;
       const currentCardIdx = Math.floor(currentCenterPos / STRIDE);
       if (currentCardIdx !== lastTickCardIndex && currentCardIdx >= 0 && currentCardIdx < drawData.rollCards.length) {
@@ -76,13 +76,11 @@ export const NameRoll: React.FC<NameRollProps> = ({
       if (progress < 1) {
         animFrame = requestAnimationFrame(animate);
       } else {
-        // Animation finished
         setIsFinished(true);
         sfx.playWinnerChime();
         setTimeout(() => {
-          setWinnerRevealed(true);
           onComplete?.();
-        }, 600);
+        }, 750);
       }
     };
 
@@ -94,54 +92,53 @@ export const NameRoll: React.FC<NameRollProps> = ({
   }, [drawData, durationSec, soundEnabled, soundVolume]);
 
   return (
-    <div className="relative w-full max-w-5xl mx-auto my-6 px-4 select-none">
-      {/* Top Banner / Status */}
-      <div className="flex items-center justify-between mb-3 px-2">
+    <div className="relative w-full max-w-5xl mx-auto my-6 px-2 select-none">
+      {/* Top Telemetry Header */}
+      <div className="flex items-center justify-between mb-2.5 px-3">
         <div className="flex items-center space-x-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-          <span className="text-xs uppercase font-mono tracking-widest text-neutral-300 font-bold">
-            {isFinished ? 'WINNER SELECTED' : 'ROLLING FOR WINNER...'}
+          <span className="w-2 h-2 rounded-full bg-rose-500 led-beacon" />
+          <span className="text-[11px] telemetry uppercase tracking-widest text-neutral-300 font-bold">
+            {isFinished ? 'DRAW LOCKED // WINNER SELECTED' : 'DECELERATING // CS2 ROULETTE'}
           </span>
         </div>
-        <div className="text-xs font-mono text-neutral-400">
-          {drawData.rollCards.length} Entrants Roll
+        <div className="text-[10px] telemetry text-neutral-400 uppercase">
+          POOL: {drawData.rollCards.length} ENTRANTS
         </div>
       </div>
 
-      {/* Main Roulette Container */}
+      {/* Main Roulette Frame */}
       <div
         ref={containerRef}
-        className="relative h-44 overflow-hidden rounded-xl border-2 border-neutral-800 bg-neutral-950/90 shadow-2xl backdrop-blur-md"
+        className="relative h-44 overflow-hidden rounded-xl border-2 border-[#1c2233] bg-[#090b12] shadow-2xl"
         style={{
           boxShadow: isFinished
-            ? `0 0 35px -5px ${accentColor}80`
-            : '0 10px 30px -5px rgba(0,0,0,0.8)',
+            ? `0 0 40px -5px ${accentColor}90`
+            : '0 20px 45px -10px rgba(0,0,0,0.9)',
         }}
       >
-        {/* Subtle Horizontal Grid lines / case opening vignette */}
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-neutral-950 via-transparent to-neutral-950 z-20" />
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/[0.03] to-transparent z-10" />
+        {/* Shadow Vignettes */}
+        <div className="absolute inset-0 pointer-events-none roulette-vignette z-20" />
 
-        {/* Center Target Marker / Reticle */}
+        {/* Laser Sight Center Reticle */}
         <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-1 z-30 pointer-events-none flex flex-col justify-between items-center">
-          {/* Top Arrow Pointer */}
+          {/* Top Reticle Pointer */}
           <div
-            className="w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-t-[12px] drop-shadow-md"
+            className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[14px] drop-shadow-md"
             style={{ borderTopColor: accentColor }}
           />
 
-          {/* Vertical Reticle Line */}
+          {/* Laser Sight Vertical Line */}
           <div
-            className="w-[2.5px] h-full shadow-lg animate-reticle"
+            className="w-[2px] h-full animate-laser"
             style={{
               backgroundColor: accentColor,
-              boxShadow: `0 0 10px ${accentColor}`,
+              boxShadow: `0 0 8px ${accentColor}`,
             }}
           />
 
-          {/* Bottom Arrow Pointer */}
+          {/* Bottom Reticle Pointer */}
           <div
-            className="w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-b-[12px] drop-shadow-md"
+            className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[14px] drop-shadow-md"
             style={{ borderBottomColor: accentColor }}
           />
         </div>
@@ -155,56 +152,54 @@ export const NameRoll: React.FC<NameRollProps> = ({
           {drawData.rollCards.map((card, idx) => {
             const isTargetWinner = idx === drawData.targetIndex;
             const highlight = isFinished && isTargetWinner;
+            const tierColor = isTargetWinner ? accentColor : tierColors[card.avatarSeed % tierColors.length];
 
             return (
               <div
                 key={card.id}
-                className="flex-shrink-0 flex flex-col items-center justify-between h-36 rounded-lg p-3 mx-2 transition-transform duration-300 relative overflow-hidden"
+                className="flex-shrink-0 flex flex-col items-center justify-between h-36 rounded-lg p-3 mx-1.5 transition-transform duration-300 relative overflow-hidden"
                 style={{
                   width: `${CARD_WIDTH}px`,
-                  backgroundColor: highlight ? '#1c1f2b' : '#14161f',
+                  backgroundColor: highlight ? '#161925' : '#0e111a',
                   border: highlight
                     ? `2.5px solid ${accentColor}`
-                    : '1.5px solid #282d3d',
+                    : '1px solid #1c2233',
                   transform: highlight ? 'scale(1.04)' : 'scale(1)',
-                  boxShadow: highlight ? `0 0 25px ${accentColor}90` : 'none',
+                  boxShadow: highlight ? `0 0 30px ${accentColor}80` : 'none',
                 }}
               >
-                {/* Top card accent line */}
+                {/* Top Card Tier Ribbon */}
                 <div
-                  className="absolute top-0 left-0 right-0 h-1"
-                  style={{
-                    backgroundColor: isTargetWinner ? accentColor : '#3d445c',
-                  }}
+                  className="absolute top-0 left-0 right-0 h-1.5 shadow-sm"
+                  style={{ backgroundColor: tierColor }}
                 />
 
                 {/* Avatar Badge */}
-                <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg text-white shadow-inner border border-white/10 mt-1"
+                <div
+                  className="w-12 h-12 rounded-lg flex items-center justify-center font-black text-lg text-white shadow-inner border border-white/10 mt-1 telemetry"
                   style={{
                     background: isTargetWinner
-                      ? `linear-gradient(135deg, ${accentColor}, #f59e0b)`
-                      : `linear-gradient(135deg, #2b3245, #181d2a)`,
+                      ? `linear-gradient(135deg, ${accentColor}, #ffb703)`
+                      : 'linear-gradient(135deg, #1c2132, #10131d)',
                   }}
                 >
                   {card.username.charAt(0).toUpperCase()}
                 </div>
 
-                {/* Username */}
+                {/* Username & Metadata */}
                 <div className="w-full text-center px-1">
-                  <div className="text-sm font-semibold truncate text-neutral-100 font-sans">
-                    {card.username}
+                  <div className="text-xs font-bold truncate text-white telemetry">
+                    @{card.username}
                   </div>
-                  <div className="text-[10px] font-mono text-neutral-500 uppercase tracking-wider">
-                    {isTargetWinner && isFinished ? '★ WINNER ★' : `Entry #${idx + 1}`}
+                  <div className="text-[9px] telemetry text-neutral-400 uppercase tracking-wider mt-0.5">
+                    {isTargetWinner && isFinished ? 'CONFIRMED VICTOR' : `TICKET #${String(idx + 1).padStart(2, '0')}`}
                   </div>
                 </div>
 
-                {/* Card Tier Indicator Bar */}
+                {/* Bottom Tier Indicator */}
                 <div
-                  className="w-full h-1.5 rounded-full"
-                  style={{
-                    backgroundColor: isTargetWinner ? accentColor : '#252a39',
-                  }}
+                  className="w-full h-1 rounded-full opacity-80"
+                  style={{ backgroundColor: tierColor }}
                 />
               </div>
             );

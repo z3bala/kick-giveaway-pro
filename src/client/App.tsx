@@ -144,7 +144,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-charcoal text-neutral-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#090b11] text-neutral-100 flex flex-col font-sans select-none">
       {/* Top Header */}
       <Header
         kickBot={kickBot}
@@ -166,7 +166,7 @@ export const App: React.FC = () => {
         />
 
         {/* Tab View Container */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8 bg-brand-charcoal">
+        <main className="flex-1 overflow-y-auto p-5 md:p-6 bg-[#090b11]">
           <div className="max-w-7xl mx-auto">
             {currentTab === 'overview' && (
               <Overview

@@ -4,28 +4,30 @@
 
 :root {
   color-scheme: dark;
+  --accent-color: #e63946;
+  --kick-green: #53fc18;
 }
 
-/* Custom smooth dark scrollbars */
+/* Custom Tactical Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a0b0e;
+  background: #090a0f;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #222634;
-  border-radius: 3px;
+  background: #1e2230;
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #394157;
+  background: #32384e;
 }
 
-/* Standalone Overlay Mode: 100% transparent background for OBS Studio */
+/* Standalone Overlay Mode: 100% transparent for OBS Studio Browser Source */
 body.overlay-mode,
 html.overlay-mode {
   background-color: transparent !important;
@@ -34,31 +36,53 @@ html.overlay-mode {
   user-select: none;
 }
 
-/* Glowing text & box effects */
-.glow-accent {
-  box-shadow: 0 0 25px -4px var(--accent-glow, rgba(225, 29, 72, 0.45));
+/* Tactical Surface & Glow Utilities */
+.tactical-surface {
+  background: linear-gradient(180deg, #12151f 0%, #0d0f17 100%);
+  border: 1px solid #1e2333;
 }
 
-.glow-amber {
-  box-shadow: 0 0 25px -4px rgba(245, 158, 11, 0.45);
+.tactical-surface-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tactical-surface-hover:hover {
+  background: linear-gradient(180deg, #171b28 0%, #10131e 100%);
+  border-color: #2b3248;
 }
 
-.glow-kick {
-  box-shadow: 0 0 20px -3px rgba(83, 252, 24, 0.35);
+/* Tactical LED indicator pulses */
+@keyframes ledBlink {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 5px var(--led-color, #53fc18)); }
+  50% { opacity: 0.4; filter: none; }
 }
 
-/* Reticle line pulse */
-@keyframes reticlePulse {
+.led-beacon {
+  animation: ledBlink 2s infinite ease-in-out;
+}
+
+/* Reticle Laser Sight */
+@keyframes laserSight {
   0%, 100% {
-    opacity: 0.9;
-    filter: drop-shadow(0 0 6px currentColor);
+    opacity: 1;
+    filter: drop-shadow(0 0 8px currentColor);
   }
   50% {
-    opacity: 0.6;
-    filter: drop-shadow(0 0 2px currentColor);
+    opacity: 0.7;
+    filter: drop-shadow(0 0 3px currentColor);
   }
 }
 
-.animate-reticle {
-  animation: reticlePulse 1.8s infinite ease-in-out;
+.animate-laser {
+  animation: laserSight 1.5s infinite ease-in-out;
+}
+
+/* Roulette Tape Vignette Shadows */
+.roulette-vignette {
+  background: linear-gradient(90deg, #090a0f 0%, rgba(9, 10, 15, 0) 18%, rgba(9, 10, 15, 0) 82%, #090a0f 100%);
+}
+
+/* Monospace Telemetry Font */
+.telemetry {
+  font-family: 'JetBrains Mono', monospace;
+  font-feature-settings: 'zero' 1, 'tnum' 1;
 }

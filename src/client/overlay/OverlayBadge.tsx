@@ -17,80 +17,80 @@ export const OverlayBadge: React.FC<OverlayBadgeProps> = ({
   const isClosed = giveaway.status === 'closed';
 
   return (
-    <div className="flex flex-col items-center justify-center p-4">
-      {/* Main Glassmorphic Widget Container */}
-      <div className="flex items-center space-x-4 px-6 py-3.5 rounded-2xl bg-neutral-950/85 border border-neutral-800 shadow-2xl backdrop-blur-xl">
-        {/* Left Icon */}
+    <div className="flex flex-col items-center justify-center p-3 select-none">
+      {/* Broadcast Stream Banner */}
+      <div className="flex items-center space-x-3.5 px-5 py-3 rounded-xl bg-[#090b12]/90 border border-[#1e2537] shadow-2xl backdrop-blur-md">
+        {/* Left Icon Pill */}
         <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-md flex-shrink-0"
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-white shadow-sm flex-shrink-0"
           style={{
             background: isOpen
-              ? `linear-gradient(135deg, ${settings.accentColor}, #f59e0b)`
-              : '#2a2f40',
+              ? `linear-gradient(135deg, ${settings.accentColor}, #ffb703)`
+              : '#202636',
           }}
         >
-          <Gift className="w-6 h-6" />
+          <Gift className="w-5 h-5" />
         </div>
 
         {/* Center Details */}
-        <div className="flex flex-col pr-2">
+        <div className="flex flex-col pr-1">
           {settings.showTitle && (
             <div className="flex items-center space-x-2">
-              <span className="text-sm font-bold text-white tracking-wide truncate max-w-xs">
+              <span className="text-xs font-bold text-white tracking-wide truncate max-w-xs font-sans">
                 {giveaway.prize || giveaway.title}
               </span>
               <span
-                className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase ${
+                className={`text-[9px] telemetry px-1.5 py-0.5 rounded font-bold uppercase border ${
                   isOpen
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    ? 'bg-[#53fc18]/15 text-[#53fc18] border-[#53fc18]/30 led-beacon'
+                    : 'bg-amber-400/15 text-amber-300 border-amber-400/30'
                 }`}
               >
-                {isOpen ? 'GIVEAWAY LIVE' : 'ENTRIES CLOSED'}
+                {isOpen ? 'GIVEAWAY ACTIVE' : 'POOL FROZEN'}
               </span>
             </div>
           )}
 
           {/* Action text */}
-          <div className="flex items-center space-x-2 mt-1">
+          <div className="flex items-center space-x-1.5 mt-0.5">
             {isOpen ? (
               <>
-                <MessageSquare className="w-3.5 h-3.5 text-neutral-400" />
-                <span className="text-xs text-neutral-300">Type in chat to enter:</span>
+                <MessageSquare className="w-3 h-3 text-neutral-400" />
+                <span className="text-[11px] telemetry text-neutral-400">TYPE IN KICK CHAT:</span>
                 <span
-                  className="text-xs font-mono font-bold px-2 py-0.5 rounded-md text-white shadow-sm"
+                  className="text-xs telemetry font-bold px-1.5 py-0.5 rounded text-white shadow-sm"
                   style={{ backgroundColor: settings.accentColor }}
                 >
                   {giveaway.keyword}
                 </span>
               </>
             ) : isClosed ? (
-              <span className="text-xs text-neutral-400">Selecting winner shortly...</span>
+              <span className="text-[11px] telemetry text-neutral-400">DRAW COMMENCING SHORTLY</span>
             ) : null}
           </div>
         </div>
 
         {/* Right: Participant Count */}
         {settings.showCount && (
-          <div className="pl-4 border-l border-neutral-800 flex items-center space-x-2 flex-shrink-0">
-            <Users className="w-4 h-4 text-neutral-400" />
+          <div className="pl-3.5 border-l border-[#1f2537] flex items-center space-x-2 flex-shrink-0">
+            <Users className="w-3.5 h-3.5 text-neutral-400" />
             <div className="text-right">
-              <div className="text-base font-bold font-mono text-white leading-tight">
+              <div className="text-sm font-bold telemetry text-white leading-tight">
                 {giveaway.participantCount}
               </div>
-              <div className="text-[9px] uppercase tracking-wider text-neutral-500 font-mono">
-                Entrants
+              <div className="text-[8px] uppercase tracking-wider text-neutral-400 telemetry">
+                ENTRANTS
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Optional Recent Entrant Toast */}
+      {/* Optional Recent Entrant Notification Pill */}
       {settings.showRecentTicker && recentJoined && isOpen && (
-        <div className="mt-2 text-xs font-mono text-neutral-300 bg-neutral-900/80 px-3 py-1 rounded-full border border-neutral-800 shadow-md animate-fade-in flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-          <span>New entrant:</span>
+        <div className="mt-2 text-[11px] telemetry text-neutral-300 bg-[#0c0f18]/90 px-3 py-1 rounded-full border border-[#1e2538] shadow-md animate-fade-in flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#53fc18] led-beacon" />
+          <span className="text-neutral-400">NEW ENTRANT:</span>
           <span className="text-white font-bold">@{recentJoined.username}</span>
         </div>
       )}

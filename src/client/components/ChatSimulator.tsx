@@ -5,9 +5,7 @@ import {
   Users,
   Copy,
   AlertCircle,
-  CheckCircle2,
-  Sparkles,
-  RefreshCw,
+  Crosshair,
 } from 'lucide-react';
 import type { Giveaway } from '../../shared/types.js';
 
@@ -20,14 +18,14 @@ interface ChatSimulatorProps {
 export const ChatSimulator: React.FC<ChatSimulatorProps> = ({
   giveaway,
   onSimulateChat,
-  accentColor = '#e11d48',
+  accentColor = '#e63946',
 }) => {
-  const [username, setUsername] = useState('KickViewer_42');
+  const [username, setUsername] = useState('KickFan_99');
   const [message, setMessage] = useState(giveaway?.keyword || '!join');
-  const [chatLogs, setChatLogs] = useState<Array<{ username: string; message: string; time: string; type: 'user' | 'bot' | 'system' }>>([
+  const [chatLogs, setChatLogs] = useState<Array<{ username: string; message: string; time: string; type: 'user' | 'system' }>>([
     {
-      username: 'System',
-      message: 'Chat simulator ready. Messages will trigger the bot logic and register giveaway entries.',
+      username: 'SYSTEM',
+      message: 'TERMINAL READY // INBOUND CHAT MESSAGES WILL TRIGGER THE ENTRY EVALUATION ENGINE.',
       time: new Date().toLocaleTimeString(),
       type: 'system',
     },
@@ -57,7 +55,7 @@ export const ChatSimulator: React.FC<ChatSimulatorProps> = ({
       setChatLogs((prev) => [
         ...prev,
         {
-          username: 'Error',
+          username: 'ERROR',
           message: err.message,
           time: new Date().toLocaleTimeString(),
           type: 'system',
@@ -70,16 +68,16 @@ export const ChatSimulator: React.FC<ChatSimulatorProps> = ({
 
   const simulateBatch = async (count: number = 10) => {
     setIsSending(true);
-    const randomAdjectives = ['Super', 'Epic', 'Turbo', 'Shadow', 'Mystic', 'Golden', 'Dark', 'Hyper', 'Crazy', 'Silent'];
-    const randomNouns = ['Gamer', 'KickFan', 'Sniper', 'Streamer', 'Viper', 'Knight', 'Wizard', 'Ninja', 'Player', 'Beast'];
+    const adjectives = ['Apex', 'Viper', 'Ghost', 'Rogue', 'Titan', 'Shadow', 'Frost', 'Echo', 'Neon', 'Specter'];
+    const nouns = ['Sniper', 'Knight', 'Shooter', 'Pilot', 'Striker', 'Phantom', 'Soldier', 'Gamer', 'Hunter', 'Blade'];
 
     const keyword = giveaway?.keyword || '!join';
 
     for (let i = 0; i < count; i++) {
-      const adj = randomAdjectives[Math.floor(Math.random() * randomAdjectives.length)];
-      const noun = randomNouns[Math.floor(Math.random() * randomNouns.length)];
+      const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+      const noun = nouns[Math.floor(Math.random() * nouns.length)];
       const randomNum = Math.floor(Math.random() * 899) + 100;
-      const fakeUsername = `${adj}${noun}_${randomNum}`;
+      const fakeUsername = `${adj}_${noun}_${randomNum}`;
 
       try {
         await onSimulateChat(fakeUsername, keyword);
@@ -92,8 +90,7 @@ export const ChatSimulator: React.FC<ChatSimulatorProps> = ({
             type: 'user',
           },
         ]);
-        // slight stagger
-        await new Promise((r) => setTimeout(r, 120));
+        await new Promise((r) => setTimeout(r, 100));
       } catch {}
     }
     setIsSending(false);
@@ -106,8 +103,8 @@ export const ChatSimulator: React.FC<ChatSimulatorProps> = ({
     setChatLogs((prev) => [
       ...prev,
       {
-        username: 'System',
-        message: `Simulating user @${dupUser} sending entry keyword twice to test duplicate prevention...`,
+        username: 'SYSTEM',
+        message: `TESTING DUPLICATE FILTER // USER @${dupUser} SENDING DUAL ENTRY PACKETS...`,
         time: new Date().toLocaleTimeString(),
         type: 'system',
       },
@@ -124,7 +121,7 @@ export const ChatSimulator: React.FC<ChatSimulatorProps> = ({
       },
     ]);
 
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 400));
 
     await onSimulateChat(dupUser, keyword);
     setChatLogs((prev) => [
@@ -136,8 +133,8 @@ export const ChatSimulator: React.FC<ChatSimulatorProps> = ({
         type: 'user',
       },
       {
-        username: 'System',
-        message: `Verified: @${dupUser} was rejected on second entry by SQLite UNIQUE constraint. Participant count unchanged.`,
+        username: 'SYSTEM',
+        message: `VERIFIED: @${dupUser} SECOND ENTRY REJECTED BY DATABASE UNIQUE CONSTRAINT.`,
         time: new Date().toLocaleTimeString(),
         type: 'system',
       },
@@ -147,151 +144,153 @@ export const ChatSimulator: React.FC<ChatSimulatorProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Chat Simulator & Rehearsal Tool</h2>
-        <p className="text-sm text-neutral-400">
-          Simulate incoming Kick chat messages, test bot keyword parsing, and verify duplicate protection without live streaming.
+      <div className="pb-4 border-b border-[#1b1f2e]">
+        <h2 className="text-xl font-black text-white tracking-wider uppercase telemetry">
+          Inbound Chat Terminal
+        </h2>
+        <p className="text-xs text-neutral-400 mt-0.5">
+          Simulate Kick chat traffic, test keyword parsers, and verify duplicate filters offline.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Input Form & Quick Batches */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left Column: Form & Presets */}
         <div className="lg:col-span-1 space-y-4">
-          <div className="p-6 rounded-2xl bg-brand-surface border border-brand-border space-y-4">
-            <h3 className="text-xs font-mono uppercase text-neutral-400 font-bold">
-              Simulate Viewer Message
+          <div className="p-4 rounded-xl tactical-surface space-y-3.5">
+            <h3 className="text-xs telemetry uppercase text-neutral-300 font-bold tracking-wider">
+              Inject Chat Packet
             </h3>
 
             <form onSubmit={handleSend} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-mono uppercase text-neutral-400 mb-1">
-                  Viewer Username
+                <label className="block text-[10px] telemetry uppercase text-neutral-400 mb-1">
+                  Viewer Handle
                 </label>
                 <input
                   type="text"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-brand-surface2 border border-brand-border text-white text-xs font-mono focus:outline-none"
+                  className="w-full px-3 py-1.5 rounded-lg bg-[#11141e] border border-[#1e2436] text-white text-xs telemetry focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono uppercase text-neutral-400 mb-1">
-                  Chat Message (Entry command)
+                <label className="block text-[10px] telemetry uppercase text-neutral-400 mb-1">
+                  Message Payload
                 </label>
                 <input
                   type="text"
                   required
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-brand-surface2 border border-brand-border text-white text-xs font-mono focus:outline-none"
+                  className="w-full px-3 py-1.5 rounded-lg bg-[#11141e] border border-[#1e2436] text-white text-xs telemetry focus:outline-none"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isSending}
-                className="w-full py-2.5 rounded-xl text-xs font-bold text-white shadow-md flex items-center justify-center space-x-2 transition-all hover:brightness-110"
+                className="w-full py-2 rounded-lg text-xs telemetry font-bold text-white shadow-sm flex items-center justify-center space-x-1.5 transition-all hover:brightness-110 uppercase tracking-wider"
                 style={{ backgroundColor: accentColor }}
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Send Chat Message</span>
+                <span>INJECT PACKET</span>
               </button>
             </form>
           </div>
 
-          {/* Quick Simulation Presets */}
-          <div className="p-6 rounded-2xl bg-brand-surface border border-brand-border space-y-3">
-            <h3 className="text-xs font-mono uppercase text-neutral-400 font-bold">
-              Automated Rehearsal Actions
+          {/* Quick Presets */}
+          <div className="p-4 rounded-xl tactical-surface space-y-2.5">
+            <h3 className="text-xs telemetry uppercase text-neutral-300 font-bold tracking-wider">
+              Stress Test Presets
             </h3>
 
             <button
               onClick={() => simulateBatch(10)}
               disabled={isSending || giveaway?.status !== 'open'}
-              className="w-full py-2.5 px-3 rounded-xl text-xs font-semibold bg-brand-surface2 hover:bg-brand-surface3 border border-brand-border text-neutral-200 hover:text-white flex items-center justify-between transition-all"
+              className="w-full py-2 px-3 rounded-lg text-xs telemetry font-bold bg-[#11141e] hover:bg-[#181d2a] border border-[#1e2436] text-neutral-200 hover:text-white flex items-center justify-between transition-all"
             >
               <div className="flex items-center space-x-2">
-                <Users className="w-4 h-4 text-emerald-400" />
-                <span>Batch 10 Entrants</span>
+                <Users className="w-3.5 h-3.5 text-emerald-400" />
+                <span>INJECT 10 VIEWERS</span>
               </div>
-              <span className="text-[10px] font-mono bg-brand-surface3 px-2 py-0.5 rounded text-neutral-400">
-                +10 Viewers
+              <span className="text-[10px] bg-[#1a1f2e] px-1.5 py-0.5 rounded text-neutral-400">
+                +10
               </span>
             </button>
 
             <button
               onClick={() => simulateBatch(25)}
               disabled={isSending || giveaway?.status !== 'open'}
-              className="w-full py-2.5 px-3 rounded-xl text-xs font-semibold bg-brand-surface2 hover:bg-brand-surface3 border border-brand-border text-neutral-200 hover:text-white flex items-center justify-between transition-all"
+              className="w-full py-2 px-3 rounded-lg text-xs telemetry font-bold bg-[#11141e] hover:bg-[#181d2a] border border-[#1e2436] text-neutral-200 hover:text-white flex items-center justify-between transition-all"
             >
               <div className="flex items-center space-x-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>Batch 25 Entrants (Stress Test)</span>
+                <Crosshair className="w-3.5 h-3.5 text-amber-400" />
+                <span>STRESS TEST 25 VIEWERS</span>
               </div>
-              <span className="text-[10px] font-mono bg-brand-surface3 px-2 py-0.5 rounded text-neutral-400">
-                +25 Viewers
+              <span className="text-[10px] bg-[#1a1f2e] px-1.5 py-0.5 rounded text-neutral-400">
+                +25
               </span>
             </button>
 
             <button
               onClick={simulateDuplicate}
               disabled={isSending || giveaway?.status !== 'open'}
-              className="w-full py-2.5 px-3 rounded-xl text-xs font-semibold bg-brand-surface2 hover:bg-brand-surface3 border border-brand-border text-neutral-200 hover:text-white flex items-center justify-between transition-all"
+              className="w-full py-2 px-3 rounded-lg text-xs telemetry font-bold bg-[#11141e] hover:bg-[#181d2a] border border-[#1e2436] text-neutral-200 hover:text-white flex items-center justify-between transition-all"
             >
               <div className="flex items-center space-x-2">
-                <Copy className="w-4 h-4 text-rose-400" />
-                <span>Test Duplicate Rejection</span>
+                <Copy className="w-3.5 h-3.5 text-rose-400" />
+                <span>VERIFY DUPLICATE FILTER</span>
               </div>
-              <span className="text-[10px] font-mono bg-brand-surface3 px-2 py-0.5 rounded text-neutral-400">
-                Verify Fix
+              <span className="text-[10px] bg-[#1a1f2e] px-1.5 py-0.5 rounded text-neutral-400">
+                TEST
               </span>
             </button>
 
             {giveaway?.status !== 'open' && (
-              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>Giveaway must be Open to accept entries.</span>
+              <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] telemetry flex items-center space-x-2">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>GIVEAWAY MUST BE OPEN TO REGISTER ENTRANTS.</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Column: Live Chat Terminal Output */}
-        <div className="lg:col-span-2 p-6 rounded-2xl bg-brand-surface border border-brand-border flex flex-col h-[520px]">
-          <div className="flex items-center justify-between pb-3 border-b border-brand-border mb-3">
+        {/* Right Column: Terminal Logs */}
+        <div className="lg:col-span-2 p-4 rounded-xl tactical-surface flex flex-col h-[480px]">
+          <div className="flex items-center justify-between pb-2.5 border-b border-[#1b202e] mb-2.5">
             <div className="flex items-center space-x-2">
               <Terminal className="w-4 h-4 text-neutral-400" />
-              <span className="text-xs font-mono uppercase text-neutral-300 font-bold">
-                Live Channel Chat Feed
+              <span className="text-xs telemetry uppercase text-neutral-300 font-bold tracking-wider">
+                RAW IRC & PUSHER EVENT STREAM
               </span>
             </div>
             <button
               onClick={() => setChatLogs([])}
-              className="text-[11px] font-mono text-neutral-500 hover:text-neutral-300"
+              className="text-[10px] telemetry text-neutral-500 hover:text-neutral-300"
             >
-              Clear Log
+              CLEAR FEED
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-2 pr-2 font-mono text-xs">
+          <div className="flex-1 overflow-y-auto space-y-1.5 pr-2 telemetry text-xs">
             {chatLogs.map((log, i) => (
               <div
                 key={i}
-                className={`p-2.5 rounded-xl border ${
+                className={`p-2 rounded-lg border ${
                   log.type === 'system'
-                    ? 'bg-brand-surface2/60 border-brand-border text-neutral-400 text-[11px]'
-                    : 'bg-brand-surface2 border-brand-border text-neutral-200'
+                    ? 'bg-[#0f121b] border-[#181c2b] text-neutral-400 text-[11px]'
+                    : 'bg-[#121622] border-[#1c2233] text-neutral-200'
                 }`}
               >
                 <div className="flex items-center justify-between text-[10px] text-neutral-500 mb-0.5">
                   <span className="font-bold text-neutral-300">
-                    {log.type === 'system' ? '⚙️ System' : `@${log.username}`}
+                    {log.type === 'system' ? 'LOG // SYSTEM' : `@${log.username}`}
                   </span>
                   <span>{log.time}</span>
                 </div>
-                <div className="break-words font-sans">{log.message}</div>
+                <div className="break-words font-sans text-xs">{log.message}</div>
               </div>
             ))}
           </div>
