@@ -3,10 +3,12 @@ services:
     name: kick-giveaway-pro
     env: node
     plan: free
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm run start
     healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION
+        value: 22.13.0
       - key: NODE_ENV
         value: production
       - key: PORT
@@ -23,10 +25,3 @@ services:
         generateValue: true
       - key: DATABASE_PATH
         value: ./data/giveaway.db
-    # Note: Render free tier does not support persistent disks.
-    # The database will persist in ./data during execution and restarts.
-    # To attach a persistent disk on paid plans, uncomment below:
-    # disk:
-    #   name: giveaway-data
-    #   mountPath: /var/data
-    #   sizeGB: 1
