@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSocket } from './hooks/useSocket.js';
 import { api } from './utils/api.js';
 import { OverlayApp } from './overlay/OverlayApp.js';
+import { Sidebar, type TabType } from './components/Sidebar.js';
 import { Header } from './components/Header.js';
-import { Sidebar, TabType } from './components/Sidebar.js';
 import { Overview } from './components/Overview.js';
 import { GiveawayControls } from './components/GiveawayControls.js';
 import { ParticipantsList } from './components/ParticipantsList.js';
@@ -21,17 +21,19 @@ export const App: React.FC = () => {
     return <OverlayApp />;
   }
 
-  // Dashboard state
+  // Dashboard real-time state
   const {
     connected,
     giveaway,
     participants,
     kickBot,
     overlaySettings,
+    activeDraw,
     history,
   } = useSocket({ clientType: 'dashboard' });
 
   const [currentTab, setCurrentTab] = useState<TabType>('overview');
+
   const [appSettings, setAppSettings] = useState<AppSettings>({
     kickChannelSlug: '',
     kickBroadcasterId: '',
@@ -63,7 +65,6 @@ export const App: React.FC = () => {
     action: async () => {},
   });
 
-  // Load app settings
   useEffect(() => {
     fetch('/api/settings/app')
       .then((res) => res.json())
@@ -71,10 +72,9 @@ export const App: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  // API Handlers
+  // Action Handlers
   const handleCreateGiveaway = async (title: string, prize: string, keyword: string) => {
     await api.createGiveaway({ title, prize, keyword });
-    setCurrentTab('controls');
   };
 
   const handleOpenEntries = async () => {
@@ -98,14 +98,22 @@ export const App: React.FC = () => {
   };
 
   const handleResetGiveaway = async () => {
-    await api.resetGiveaway();
+    setConfirmModalData({
+      isOpen: true,
+      title: 'Reset Active Giveaway',
+      message: 'Are you sure you want to reset this giveaway? The current record will remain safely archived in your history ledger.',
+      action: async () => {
+        await api.resetGiveaway();
+        setConfirmModalData((prev) => ({ ...prev, isOpen: false }));
+      },
+    });
   };
 
   const handleRemoveParticipant = (participant: Participant) => {
     setConfirmModalData({
       isOpen: true,
       title: 'Remove Participant',
-      message: `Are you sure you want to remove @${participant.username} from this giveaway? They will not be eligible to win.`,
+      message: `Are you sure you want to remove @${participant.username} from this giveaway pool?`,
       action: async () => {
         await api.removeParticipant(participant.id);
         setConfirmModalData((prev) => ({ ...prev, isOpen: false }));
@@ -143,31 +151,47 @@ export const App: React.FC = () => {
     setAdminSecret(secret);
   };
 
+  const tabTitles: Record<TabType, string> = {
+    overview: 'Dashboard',
+    controls: 'Giveaway Controls',
+    participants: 'Participants Pool',
+    overlay: 'OBS Overlay Studio',
+    simulator: 'Chat Simulator',
+    history: 'History & Winners',
+    settings: 'Settings & Kick Bot',
+  };
+
   return (
-    <div className="min-h-screen bg-[#090b11] text-neutral-100 flex flex-col font-sans select-none">
-      {/* Top Header */}
-      <Header
-        kickBot={kickBot}
-        overlaySettings={overlaySettings}
+    <div className="min-h-screen bg-[#090b10] text-neutral-100 flex font-sans select-none">
+      {/* Sleek Modern Left Sidebar */}
+      <Sidebar
+        currentTab={currentTab}
+        onSelectTab={setCurrentTab}
+        participantCount={participants.length}
+        giveawayStatus={giveaway?.status}
+        kickChannelSlug={kickBot.channelSlug || appSettings.kickChannelSlug}
+        isKickConnected={kickBot.status === 'connected'}
         overlayToken={appSettings.overlayToken}
-        onOpenAuthModal={() => setIsAuthModalOpen(true)}
         isAdminAuthenticated={!!adminSecret}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        accentColor={overlaySettings.accentColor}
       />
 
-      {/* Main Body */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Persistent Sidebar */}
-        <Sidebar
-          currentTab={currentTab}
-          onSelectTab={setCurrentTab}
-          participantCount={giveaway?.participantCount || 0}
-          giveawayStatus={giveaway?.status}
-          accentColor={overlaySettings.accentColor}
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* Top Header */}
+        <Header
+          currentTabName={tabTitles[currentTab]}
+          kickBot={kickBot}
+          overlaySettings={overlaySettings}
+          overlayToken={appSettings.overlayToken}
+          onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          isAdminAuthenticated={!!adminSecret}
         />
 
-        {/* Tab View Container */}
-        <main className="flex-1 overflow-y-auto p-5 md:p-6 bg-[#090b11]">
-          <div className="max-w-7xl mx-auto">
+        {/* Scrollable View Area */}
+        <main className="flex-1 overflow-y-auto p-6 md:p-8">
+          <div className="max-w-7xl mx-auto w-full">
             {currentTab === 'overview' && (
               <Overview
                 giveaway={giveaway}
@@ -178,6 +202,7 @@ export const App: React.FC = () => {
                 onOpenGiveaway={handleOpenEntries}
                 onCloseGiveaway={handleCloseEntries}
                 onStartDraw={handleStartDraw}
+                onRevealWinner={handleRevealWinner}
                 onCreateNew={() => setCurrentTab('controls')}
               />
             )}
@@ -194,18 +219,7 @@ export const App: React.FC = () => {
                 onStartDraw={handleStartDraw}
                 onRevealWinner={handleRevealWinner}
                 onResetGiveaway={handleResetGiveaway}
-                onOpenResetConfirmModal={() =>
-                  setConfirmModalData({
-                    isOpen: true,
-                    title: 'Reset Giveaway',
-                    message:
-                      'Are you sure you want to reset this giveaway? Completed records will remain stored in Giveaway History.',
-                    action: async () => {
-                      await handleResetGiveaway();
-                      setConfirmModalData((prev) => ({ ...prev, isOpen: false }));
-                    },
-                  })
-                }
+                onOpenResetConfirmModal={handleResetGiveaway}
               />
             )}
 
@@ -256,7 +270,7 @@ export const App: React.FC = () => {
         </main>
       </div>
 
-      {/* Modals */}
+      {/* Confirmation & Authorization Modals */}
       <ConfirmModal
         isOpen={confirmModalData.isOpen}
         title={confirmModalData.title}

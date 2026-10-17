@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ExternalLink, Copy, Check, Radio, ShieldCheck, KeyRound, Activity } from 'lucide-react';
+import { ExternalLink, Copy, Check, Radio, Lock, Unlock, Tv } from 'lucide-react';
 import type { KickBotState, OverlaySettings } from '../../shared/types.js';
 
 interface HeaderProps {
+  currentTabName: string;
   kickBot: KickBotState;
   overlaySettings: OverlaySettings;
   overlayToken?: string;
@@ -11,6 +12,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  currentTabName,
   kickBot,
   overlaySettings,
   overlayToken,
@@ -34,122 +36,85 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="h-14 border-b border-[#1b1f2e] bg-[#0c0e15] px-5 flex items-center justify-between sticky top-0 z-40 select-none">
-      {/* Brand Identity / Broadcast Callout */}
-      <div className="flex items-center space-x-3.5">
-        <div className="flex items-center space-x-2.5">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-white text-xs tracking-wider shadow-sm"
-            style={{ backgroundColor: overlaySettings.accentColor }}
-          >
-            KP
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center space-x-2">
-              <span className="font-extrabold text-white text-sm tracking-wider uppercase">
-                Kick Giveaway Pro
-              </span>
-              <span className="text-[9px] telemetry px-1.5 py-0.2 rounded bg-[#161a26] border border-[#23293d] text-neutral-400 font-semibold">
-                OPS v1.0
-              </span>
-            </div>
-            <span className="text-[10px] text-neutral-400 telemetry">
-              BROADCAST COMMAND DECK
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Center Telemetry Status */}
-      <div className="hidden lg:flex items-center space-x-3">
-        {/* Kick Stream Uplink */}
-        <div className="flex items-center space-x-2 px-3 py-1 rounded-md bg-[#11141e] border border-[#1d2232] text-xs">
-          <div
-            className={`w-2 h-2 rounded-full ${
-              kickBot.status === 'connected'
-                ? 'bg-[#53fc18] led-beacon'
-                : kickBot.status === 'connecting'
-                ? 'bg-amber-400 animate-ping'
-                : 'bg-neutral-600'
-            }`}
-          />
-          <span className="text-[11px] telemetry text-neutral-400 uppercase">Kick Uplink:</span>
-          <span className="text-[11px] telemetry font-semibold text-neutral-200">
-            {kickBot.channelSlug ? `@${kickBot.channelSlug}` : 'DISCONNECTED'}
-          </span>
-          <span
-            className={`text-[9px] telemetry px-1.5 py-0.5 rounded font-bold uppercase ${
-              kickBot.status === 'connected'
-                ? 'bg-[#53fc18]/15 text-[#53fc18]'
-                : kickBot.status === 'connecting'
-                ? 'bg-amber-400/15 text-amber-300'
-                : 'bg-neutral-800 text-neutral-400'
-            }`}
-          >
-            {kickBot.status}
-          </span>
-        </div>
-
-        {/* WebSocket Signal */}
-        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-[#11141e] border border-[#1d2232] text-[11px] telemetry text-neutral-400">
-          <Activity className="w-3.5 h-3.5 text-neutral-400" />
-          <span>SOCKET 60FPS</span>
-        </div>
+    <header className="h-16 bg-[#0c0f17]/80 backdrop-blur-md border-b border-white/[0.08] px-6 flex items-center justify-between sticky top-0 z-30 select-none">
+      {/* Current Page Title */}
+      <div className="flex items-center space-x-3">
+        <h1 className="text-lg font-bold text-white tracking-tight">{currentTabName}</h1>
+        <span className="text-xs text-neutral-500 font-medium hidden sm:inline">•</span>
+        <span className="text-xs text-neutral-400 font-medium hidden sm:inline">
+          Kick Stream Assistant
+        </span>
       </div>
 
       {/* Right Actions */}
-      <div className="flex items-center space-x-2.5">
-        {/* Admin Session Key Button */}
-        <button
-          onClick={onOpenAuthModal}
-          className={`px-2.5 py-1.5 rounded-lg text-xs telemetry font-medium flex items-center space-x-1.5 border transition-all ${
-            isAdminAuthenticated
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-              : 'bg-[#141722] text-neutral-400 border-[#22273a] hover:text-white'
-          }`}
-        >
-          {isAdminAuthenticated ? (
-            <>
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>KEY AUTHENTICATED</span>
-            </>
-          ) : (
-            <>
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>AUTH LOCK</span>
-            </>
-          )}
-        </button>
+      <div className="flex items-center space-x-3">
+        {/* Kick Connection Pill */}
+        <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs">
+          <span
+            className={`w-2 h-2 rounded-full ${
+              kickBot.status === 'connected'
+                ? 'bg-[#53fc18] animate-live-pulse'
+                : kickBot.status === 'connecting'
+                ? 'bg-amber-400 animate-pulse'
+                : 'bg-neutral-500'
+            }`}
+          />
+          <span className="text-neutral-400 font-medium">Kick:</span>
+          <span className="font-semibold text-white">
+            {kickBot.channelSlug ? `@${kickBot.channelSlug}` : 'Disconnected'}
+          </span>
+        </div>
 
-        {/* Copy OBS URL button */}
+        {/* Copy OBS Link Button */}
         <button
           onClick={copyOverlayUrl}
-          className="px-3 py-1.5 rounded-lg text-xs telemetry font-medium flex items-center space-x-1.5 bg-[#141722] border border-[#22273a] text-neutral-300 hover:bg-[#1a1e2d] hover:text-white transition-all shadow-sm"
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center space-x-1.5 border transition-all ${
+            copied
+              ? 'bg-[#53fc18] text-black border-[#53fc18] font-semibold'
+              : 'bg-white/[0.04] text-neutral-300 border-white/[0.08] hover:bg-white/[0.08] hover:text-white'
+          }`}
         >
           {copied ? (
             <>
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-emerald-400">COPIED</span>
+              <Check className="w-3.5 h-3.5" />
+              <span>Copied!</span>
             </>
           ) : (
             <>
               <Copy className="w-3.5 h-3.5 text-neutral-400" />
-              <span>COPY OBS URL</span>
+              <span>Copy OBS URL</span>
             </>
           )}
         </button>
 
-        {/* Open Overlay In New Tab */}
+        {/* View OBS Overlay In New Tab */}
         <a
           href={getOverlayUrl()}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-3 py-1.5 rounded-lg text-xs telemetry font-bold flex items-center space-x-1.5 text-white shadow-sm hover:brightness-110 transition-all uppercase tracking-wider"
-          style={{ backgroundColor: overlaySettings.accentColor }}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 bg-[#53fc18] text-black hover:bg-[#45d914] transition-all shadow-sm shadow-[#53fc18]/20"
         >
-          <span>VIEW OVERLAY</span>
-          <ExternalLink className="w-3.5 h-3.5" />
+          <Tv className="w-3.5 h-3.5" />
+          <span>Launch Overlay</span>
+          <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
         </a>
+
+        {/* Admin Unlock Icon */}
+        <button
+          onClick={onOpenAuthModal}
+          title={isAdminAuthenticated ? 'Admin Unlocked' : 'Unlock Admin Controls'}
+          className={`p-2 rounded-lg border transition-all ${
+            isAdminAuthenticated
+              ? 'bg-[#53fc18]/10 text-[#53fc18] border-[#53fc18]/30 hover:bg-[#53fc18]/20'
+              : 'bg-white/[0.04] text-neutral-400 border-white/[0.08] hover:text-white hover:bg-white/[0.08]'
+          }`}
+        >
+          {isAdminAuthenticated ? (
+            <Unlock className="w-4 h-4 text-[#53fc18]" />
+          ) : (
+            <Lock className="w-4 h-4 text-neutral-400" />
+          )}
+        </button>
       </div>
     </header>
   );

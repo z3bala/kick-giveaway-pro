@@ -4,27 +4,27 @@
 
 :root {
   color-scheme: dark;
-  --accent-color: #e63946;
+  --accent-color: #53fc18;
   --kick-green: #53fc18;
 }
 
-/* Custom Tactical Scrollbars */
+/* Modern Smooth Dark Scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #090a0f;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e2230;
-  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #32384e;
+  background: rgba(255, 255, 255, 0.25);
 }
 
 /* Standalone Overlay Mode: 100% transparent for OBS Studio Browser Source */
@@ -36,53 +36,50 @@ html.overlay-mode {
   user-select: none;
 }
 
-/* Tactical Surface & Glow Utilities */
-.tactical-surface {
-  background: linear-gradient(180deg, #12151f 0%, #0d0f17 100%);
-  border: 1px solid #1e2333;
+/* Smooth Glassmorphism Card Utilities */
+.glass-panel {
+  background: rgba(18, 22, 34, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.tactical-surface-hover {
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.tactical-surface-hover:hover {
-  background: linear-gradient(180deg, #171b28 0%, #10131e 100%);
-  border-color: #2b3248;
+.glass-card {
+  background: linear-gradient(180deg, rgba(23, 28, 44, 0.8) 0%, rgba(14, 18, 29, 0.85) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
 }
 
-/* Tactical LED indicator pulses */
-@keyframes ledBlink {
-  0%, 100% { opacity: 1; filter: drop-shadow(0 0 5px var(--led-color, #53fc18)); }
-  50% { opacity: 0.4; filter: none; }
+.glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
-.led-beacon {
-  animation: ledBlink 2s infinite ease-in-out;
+/* Kick Green Glow Effect */
+.glow-kick {
+  box-shadow: 0 0 25px -4px rgba(83, 252, 24, 0.25);
 }
 
-/* Reticle Laser Sight */
-@keyframes laserSight {
-  0%, 100% {
-    opacity: 1;
-    filter: drop-shadow(0 0 8px currentColor);
-  }
-  50% {
-    opacity: 0.7;
-    filter: drop-shadow(0 0 3px currentColor);
-  }
-}
-
-.animate-laser {
-  animation: laserSight 1.5s infinite ease-in-out;
+.glow-kick-sm {
+  box-shadow: 0 0 12px -2px rgba(83, 252, 24, 0.35);
 }
 
 /* Roulette Tape Vignette Shadows */
 .roulette-vignette {
-  background: linear-gradient(90deg, #090a0f 0%, rgba(9, 10, 15, 0) 18%, rgba(9, 10, 15, 0) 82%, #090a0f 100%);
+  background: linear-gradient(90deg, #0b0e14 0%, rgba(11, 14, 20, 0) 18%, rgba(11, 14, 20, 0) 82%, #0b0e14 100%);
 }
 
-/* Monospace Telemetry Font */
-.telemetry {
-  font-family: 'JetBrains Mono', monospace;
-  font-feature-settings: 'zero' 1, 'tnum' 1;
+/* Subtle Pulse for Live Indicator */
+@keyframes livePulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.15);
+  }
+}
+
+.animate-live-pulse {
+  animation: livePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

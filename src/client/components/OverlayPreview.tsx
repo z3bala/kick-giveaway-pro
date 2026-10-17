@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  MonitorPlay,
+  Tv,
   Volume2,
   VolumeX,
   Play,
@@ -9,7 +9,6 @@ import {
   ExternalLink,
   Layers,
   Palette,
-  Crosshair,
   Sliders,
 } from 'lucide-react';
 import type { OverlaySettings, DrawAnimationData } from '../../shared/types.js';
@@ -87,8 +86,8 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
 
   const sampleGiveaway = {
     id: 'sample-gw',
-    title: 'Championship Knife Giveaway',
-    prize: 'M9 Bayonet | Fade (Factory New)',
+    title: 'Stream Community Giveaway',
+    prize: '$100 Steam Gift Card',
     keyword: '!join',
     status: 'open' as const,
     winnerId: null,
@@ -110,41 +109,43 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
   };
 
   const colorPresets = [
+    { label: 'Kick Neon Green', hex: '#53fc18' },
     { label: 'Covert Crimson', hex: '#e63946' },
-    { label: 'Gold Fade', hex: '#ffb703' },
-    { label: 'Kick Phosphor', hex: '#53fc18' },
-    { label: 'Classified Violet', hex: '#8847ff' },
-    { label: 'Deep Cyan', hex: '#06b6d4' },
+    { label: 'Gold Amber', hex: '#f59e0b' },
+    { label: 'Classified Violet', hex: '#8b5cf6' },
+    { label: 'Electric Blue', hex: '#3b82f6' },
     { label: 'Pure White', hex: '#ffffff' },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1b1f2e]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
         <div>
-          <h2 className="text-xl font-black text-white tracking-wider uppercase telemetry">
-            Overlay Studio Monitor
-          </h2>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Calibrate, test, and preview your live OBS Studio Browser Source in real time.
+          <h2 className="text-xl font-bold text-white tracking-tight">OBS Overlay Studio</h2>
+          <p className="text-xs text-neutral-400 mt-1">
+            Customize colors, test the CS-style unboxing roulette, and copy your OBS Browser Source link.
           </p>
         </div>
 
         <div className="flex items-center space-x-2.5">
           <button
             onClick={copyUrl}
-            className="px-3 py-1.5 rounded-lg text-xs telemetry font-bold bg-[#141722] border border-[#23293c] text-neutral-200 hover:text-white transition-all flex items-center space-x-2"
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
+              copied
+                ? 'bg-[#53fc18] text-black border-[#53fc18]'
+                : 'bg-white/[0.06] text-neutral-200 border-white/[0.08] hover:bg-white/[0.12] hover:text-white'
+            }`}
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">COPIED</span>
+                <Check className="w-3.5 h-3.5" />
+                <span>Copied Link!</span>
               </>
             ) : (
               <>
-                <Copy className="w-3.5 h-3.5 text-neutral-400" />
-                <span>COPY OVERLAY URL</span>
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copy Overlay URL</span>
               </>
             )}
           </button>
@@ -153,58 +154,57 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
             href={getOverlayUrl()}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3 py-1.5 rounded-lg text-xs telemetry font-bold text-white shadow-sm flex items-center space-x-2 uppercase tracking-wider"
-            style={{ backgroundColor: settings.accentColor }}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#53fc18] hover:bg-[#45d914] text-black transition-all shadow-sm flex items-center space-x-1.5"
           >
-            <span>LIVE OBS VIEW</span>
+            <span>Open Overlay</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
       </div>
 
-      {/* 16:9 Broadcast Monitor */}
-      <div className="p-4 rounded-xl tactical-surface space-y-3">
+      {/* 16:9 Canvas Monitor */}
+      <div className="p-6 rounded-2xl glass-card space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <MonitorPlay className="w-4 h-4 text-neutral-400" />
-            <span className="text-xs telemetry uppercase text-neutral-300 font-bold tracking-wider">
-              1080P BROADCAST CANVAS // SIMULATED STREAM
+            <Tv className="w-4 h-4 text-[#53fc18]" />
+            <span className="text-xs font-semibold text-white">
+              Live Preview (16:9 1080p Stream)
             </span>
           </div>
 
-          <div className="flex items-center space-x-1.5 text-xs telemetry">
+          <div className="flex items-center space-x-1 bg-white/[0.04] p-1 rounded-xl border border-white/[0.06] text-xs">
             <button
               onClick={() => setTestMode('badge')}
-              className={`px-2.5 py-1 rounded font-bold transition-all ${
-                testMode === 'badge' ? 'bg-[#181d2b] text-white border border-[#2b3349]' : 'text-neutral-400'
+              className={`px-3 py-1 rounded-lg font-medium transition-all ${
+                testMode === 'badge' ? 'bg-white/[0.1] text-white shadow-sm' : 'text-neutral-400 hover:text-white'
               }`}
             >
-              STREAM BADGE
+              Stream Badge
             </button>
             <button
               onClick={startTestRoll}
-              className={`px-2.5 py-1 rounded font-bold transition-all flex items-center space-x-1 ${
-                testMode === 'roll' ? 'bg-[#181d2b] text-white border border-[#2b3349]' : 'text-neutral-400'
+              className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center space-x-1.5 ${
+                testMode === 'roll' ? 'bg-[#53fc18] text-black font-semibold' : 'text-neutral-400 hover:text-white'
               }`}
             >
               <Play className="w-3 h-3 fill-current" />
-              <span>TEST CS2 ROLL</span>
+              <span>Test CS2 Roll</span>
             </button>
             <button
               onClick={() => setTestMode('winner')}
-              className={`px-2.5 py-1 rounded font-bold transition-all ${
-                testMode === 'winner' ? 'bg-[#181d2b] text-white border border-[#2b3349]' : 'text-neutral-400'
+              className={`px-3 py-1 rounded-lg font-medium transition-all ${
+                testMode === 'winner' ? 'bg-white/[0.1] text-white shadow-sm' : 'text-neutral-400 hover:text-white'
               }`}
             >
-              VICTOR CARD
+              Winner Card
             </button>
           </div>
         </div>
 
-        {/* Canvas Display with aspect ratio and monitor reticle */}
-        <div className="relative w-full aspect-video rounded-lg border border-[#1b202e] bg-[#07090f] overflow-hidden flex items-center justify-center shadow-inner">
-          <div className="absolute top-3 left-3 text-[9px] telemetry text-neutral-600 uppercase pointer-events-none">
-            FEED: OVERLAY_CHANNEL_01 • 1920x1080 (SCALED)
+        {/* Display Box */}
+        <div className="relative w-full aspect-video rounded-xl border border-white/[0.08] bg-[#07090f] overflow-hidden flex items-center justify-center shadow-2xl">
+          <div className="absolute top-3 left-3 text-[10px] font-mono text-neutral-600 uppercase pointer-events-none">
+            OBS BROWSER SOURCE • 1920x1080
           </div>
 
           <div
@@ -239,31 +239,29 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
         </div>
       </div>
 
-      {/* Calibration Deck & OBS Setup Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left: Styling Controls */}
-        <div className="p-4 rounded-xl tactical-surface space-y-4">
-          <div className="flex items-center space-x-2">
-            <Palette className="w-4 h-4 text-neutral-400" />
-            <h3 className="text-xs font-bold text-white uppercase telemetry tracking-wider">
-              Overlay Visual Palette
-            </h3>
+      {/* Settings Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Visual Settings */}
+        <div className="p-6 rounded-2xl glass-card space-y-5">
+          <div className="flex items-center space-x-2.5 pb-3 border-b border-white/[0.08]">
+            <Palette className="w-4 h-4 text-[#53fc18]" />
+            <h3 className="text-sm font-bold text-white">Appearance & Timing</h3>
           </div>
 
-          {/* Accent Presets */}
+          {/* Accent Color Presets */}
           <div>
-            <label className="block text-[10px] text-neutral-400 telemetry uppercase mb-2">
-              Primary Theme Accent
+            <label className="block text-xs font-semibold text-neutral-300 mb-2">
+              Primary Accent Color
             </label>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               {colorPresets.map((c) => (
                 <button
                   key={c.hex}
                   onClick={() => onUpdateSettings({ accentColor: c.hex })}
-                  className={`w-7 h-7 rounded-lg border-2 transition-transform ${
+                  className={`w-8 h-8 rounded-xl border-2 transition-all ${
                     settings.accentColor.toLowerCase() === c.hex.toLowerCase()
-                      ? 'scale-110 border-white shadow-md'
-                      : 'border-transparent hover:scale-105'
+                      ? 'scale-110 border-white shadow-lg'
+                      : 'border-transparent hover:scale-105 opacity-80 hover:opacity-100'
                   }`}
                   style={{ backgroundColor: c.hex }}
                   title={c.label}
@@ -273,18 +271,18 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                 type="color"
                 value={settings.accentColor}
                 onChange={(e) => onUpdateSettings({ accentColor: e.target.value })}
-                className="w-7 h-7 rounded-lg bg-transparent border-0 cursor-pointer"
+                className="w-8 h-8 rounded-xl bg-transparent border-0 cursor-pointer"
                 title="Custom Hex"
               />
-              <span className="text-xs telemetry text-neutral-300 ml-1">{settings.accentColor}</span>
+              <span className="text-xs font-mono text-neutral-300 ml-1">{settings.accentColor}</span>
             </div>
           </div>
 
-          {/* Animation Duration Slider */}
+          {/* Duration Slider */}
           <div>
-            <div className="flex items-center justify-between text-xs text-neutral-400 mb-1 telemetry">
-              <span>ROLL DURATION</span>
-              <span className="text-white font-bold">{settings.animationDurationSec}s</span>
+            <div className="flex items-center justify-between text-xs font-medium text-neutral-300 mb-2">
+              <span>CS2 Roll Duration</span>
+              <span className="text-[#53fc18] font-bold font-mono">{settings.animationDurationSec}s</span>
             </div>
             <input
               type="range"
@@ -293,20 +291,20 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
               step="0.5"
               value={settings.animationDurationSec}
               onChange={(e) => onUpdateSettings({ animationDurationSec: Number(e.target.value) })}
-              className="w-full h-1 bg-[#1c2232] rounded appearance-none cursor-pointer accent-red-500"
+              className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-[#53fc18]"
             />
-            <div className="flex justify-between text-[9px] text-neutral-400 telemetry mt-0.5">
-              <span>FAST (4s)</span>
-              <span>STANDARD (7.5s)</span>
-              <span>CINEMATIC (15s)</span>
+            <div className="flex justify-between text-[11px] text-neutral-500 mt-1">
+              <span>Fast (4s)</span>
+              <span>Standard (7.5s)</span>
+              <span>Cinematic (15s)</span>
             </div>
           </div>
 
           {/* Scale Slider */}
           <div>
-            <div className="flex items-center justify-between text-xs text-neutral-400 mb-1 telemetry">
-              <span>SCALE FACTOR</span>
-              <span className="text-white font-bold">{Math.round((settings.scale || 1) * 100)}%</span>
+            <div className="flex items-center justify-between text-xs font-medium text-neutral-300 mb-2">
+              <span>Overlay Scale</span>
+              <span className="text-white font-bold font-mono">{Math.round((settings.scale || 1) * 100)}%</span>
             </div>
             <input
               type="range"
@@ -315,33 +313,34 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
               step="0.05"
               value={settings.scale || 1}
               onChange={(e) => onUpdateSettings({ scale: Number(e.target.value) })}
-              className="w-full h-1 bg-[#1c2232] rounded appearance-none cursor-pointer accent-red-500"
+              className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-[#53fc18]"
             />
           </div>
 
-          {/* Audio Controls */}
-          <div className="pt-2 border-t border-[#1b202e] space-y-2.5">
+          {/* Sound Settings */}
+          <div className="pt-3 border-t border-white/[0.08] space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-neutral-300 telemetry font-medium">
-                MECHANICAL CLICK & FANFARE AUDIO
-              </span>
+              <div>
+                <span className="text-xs font-semibold text-white block">Mechanical Sound Effects</span>
+                <span className="text-[11px] text-neutral-400">Audio clicks while spinning and victory chime</span>
+              </div>
               <button
                 onClick={() => onUpdateSettings({ soundEnabled: !settings.soundEnabled })}
-                className={`p-1.5 rounded-lg border transition-colors ${
+                className={`p-2 rounded-xl border transition-all ${
                   settings.soundEnabled
-                    ? 'bg-[#181d2a] text-white border-[#273045]'
-                    : 'bg-[#12151e] text-neutral-500 border-[#1c212e]'
+                    ? 'bg-[#53fc18]/15 text-[#53fc18] border-[#53fc18]/30'
+                    : 'bg-white/[0.04] text-neutral-500 border-white/[0.08]'
                 }`}
               >
-                {settings.soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                {settings.soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </button>
             </div>
 
             {settings.soundEnabled && (
               <div>
-                <div className="flex items-center justify-between text-[11px] text-neutral-400 mb-1 telemetry">
-                  <span>SYNTH LEVEL</span>
-                  <span className="text-white">{Math.round((settings.soundVolume || 0.8) * 100)}%</span>
+                <div className="flex items-center justify-between text-xs text-neutral-400 mb-1.5">
+                  <span>Volume</span>
+                  <span className="text-white font-mono">{Math.round((settings.soundVolume || 0.8) * 100)}%</span>
                 </div>
                 <input
                   type="range"
@@ -350,46 +349,47 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                   step="0.05"
                   value={settings.soundVolume || 0.8}
                   onChange={(e) => onUpdateSettings({ soundVolume: Number(e.target.value) })}
-                  className="w-full h-1 bg-[#1c2232] rounded appearance-none cursor-pointer accent-red-500"
+                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-[#53fc18]"
                 />
               </div>
             )}
           </div>
         </div>
 
-        {/* Right: OBS Configuration Guide */}
-        <div className="p-4 rounded-xl tactical-surface space-y-3 text-xs telemetry">
-          <div className="flex items-center space-x-2">
-            <Layers className="w-4 h-4 text-neutral-400" />
-            <h3 className="text-xs font-bold text-white uppercase telemetry tracking-wider">
-              OBS Source Parameters
-            </h3>
+        {/* OBS Setup Instructions */}
+        <div className="p-6 rounded-2xl glass-card space-y-4">
+          <div className="flex items-center space-x-2.5 pb-3 border-b border-white/[0.08]">
+            <Layers className="w-4 h-4 text-[#53fc18]" />
+            <h3 className="text-sm font-bold text-white">How to Add to OBS Studio</h3>
           </div>
 
-          <div className="space-y-2.5 leading-relaxed text-neutral-300">
-            <div className="p-2.5 rounded-lg bg-[#11141e] border border-[#1e2436]">
-              <div className="font-bold text-white mb-0.5">SOURCE TYPE: BROWSER</div>
-              <p className="text-[11px] text-neutral-400 font-sans">
-                In OBS Studio, click <strong className="text-white">+</strong> under Sources and select <strong className="text-white">Browser</strong>.
+          <div className="space-y-3 text-xs leading-relaxed text-neutral-300">
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1">
+              <div className="font-semibold text-white">1. Create a Browser Source</div>
+              <p className="text-neutral-400">
+                In OBS Studio, click the <strong className="text-white">+</strong> button under <strong className="text-white">Sources</strong> and select <strong className="text-white">Browser</strong>.
               </p>
             </div>
 
-            <div className="p-2.5 rounded-lg bg-[#11141e] border border-[#1e2436]">
-              <div className="font-bold text-white mb-1">CANVAS RESOLUTION:</div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
-                <div className="bg-[#171b28] p-1.5 rounded border border-[#232a3c]">
-                  WIDTH: <strong className="text-white">1920</strong>
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-2">
+              <div className="font-semibold text-white">2. Paste URL & Set Dimensions</div>
+              <p className="text-neutral-400">
+                Paste your unique Overlay URL and set the exact dimensions:
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                <div className="bg-black/40 p-2 rounded-lg border border-white/[0.08]">
+                  Width: <span className="text-[#53fc18] font-bold">1920</span>
                 </div>
-                <div className="bg-[#171b28] p-1.5 rounded border border-[#232a3c]">
-                  HEIGHT: <strong className="text-white">1080</strong>
+                <div className="bg-black/40 p-2 rounded-lg border border-white/[0.08]">
+                  Height: <span className="text-[#53fc18] font-bold">1080</span>
                 </div>
               </div>
             </div>
 
-            <div className="p-2.5 rounded-lg bg-[#11141e] border border-[#1e2436]">
-              <div className="font-bold text-white mb-0.5">AUDIO CONTROL:</div>
-              <p className="text-[11px] text-neutral-400 font-sans">
-                Check <strong className="text-white">"Control audio via OBS"</strong> in source properties to route the case-opening sound directly to your OBS mixer faders.
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1">
+              <div className="font-semibold text-white">3. Enable Audio (Recommended)</div>
+              <p className="text-neutral-400">
+                Check <strong className="text-white">"Control audio via OBS"</strong> in the browser source properties to route roulette sound effects directly through your stream audio mixer.
               </p>
             </div>
           </div>

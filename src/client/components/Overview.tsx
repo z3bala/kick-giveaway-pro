@@ -3,15 +3,16 @@ import {
   Trophy,
   Users,
   Radio,
-  KeyRound,
+  Sparkles,
   Gift,
   Play,
   Square,
-  Crosshair,
-  Plus,
   ArrowRight,
-  Shield,
-  CircleDot,
+  Plus,
+  KeyRound,
+  ExternalLink,
+  Dice5,
+  RotateCcw,
 } from 'lucide-react';
 import type { Giveaway, Participant, KickBotState, OverlaySettings } from '../../shared/types.js';
 
@@ -24,6 +25,7 @@ interface OverviewProps {
   onOpenGiveaway: () => void;
   onCloseGiveaway: () => void;
   onStartDraw: () => void;
+  onRevealWinner?: () => void;
   onCreateNew: () => void;
 }
 
@@ -36,6 +38,7 @@ export const Overview: React.FC<OverviewProps> = ({
   onOpenGiveaway,
   onCloseGiveaway,
   onStartDraw,
+  onRevealWinner,
   onCreateNew,
 }) => {
   const isOpen = giveaway?.status === 'open';
@@ -45,314 +48,269 @@ export const Overview: React.FC<OverviewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Telemetry Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1b1f2e]">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-[#53fc18] led-beacon" />
-            <h2 className="text-xl font-black text-white tracking-wider uppercase telemetry">
-              Operations Center
-            </h2>
-          </div>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Real-time channel broadcast telemetry, participant pool, and OBS overlay state.
-          </p>
-        </div>
+      {/* Top Banner / Welcome Card */}
+      <div className="relative overflow-hidden rounded-2xl glass-card p-6 md:p-8">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-[#53fc18]/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex items-center space-x-2.5">
-          {giveaway ? (
-            <button
-              onClick={() => onNavigateTab('controls')}
-              className="px-4 py-2 rounded-lg text-xs telemetry font-bold bg-[#151926] hover:bg-[#1c2234] text-neutral-200 border border-[#252c42] transition-all flex items-center space-x-2"
-            >
-              <span>CONTROL DECK</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          ) : (
-            <button
-              onClick={onCreateNew}
-              className="px-4 py-2 rounded-lg text-xs telemetry font-bold text-white shadow-sm hover:brightness-110 transition-all flex items-center space-x-2"
-              style={{ backgroundColor: overlaySettings.accentColor }}
-            >
-              <Plus className="w-4 h-4" />
-              <span>INITIALIZE GIVEAWAY</span>
-            </button>
-          )}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.1] text-xs">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  kickBot.status === 'connected' ? 'bg-[#53fc18] animate-live-pulse' : 'bg-neutral-500'
+                }`}
+              />
+              <span className="text-neutral-300 font-medium">
+                {kickBot.status === 'connected'
+                  ? `Listening to Kick channel @${kickBot.channelSlug}`
+                  : 'Connect Kick channel in Settings to auto-detect chat entries'}
+              </span>
+            </div>
+
+            <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+              {giveaway ? giveaway.title : 'Welcome to Kick Giveaway Pro'}
+            </h2>
+            <p className="text-sm text-neutral-400 max-w-xl">
+              {giveaway
+                ? `Viewers enter in Kick chat by typing "${giveaway.keyword}". Select and reveal winners with our animated CS-style roulette.`
+                : 'Create a new giveaway to start collecting entries from your Kick live stream chat.'}
+            </p>
+          </div>
+
+          {/* Banner Actions */}
+          <div className="flex flex-wrap items-center gap-3">
+            {!giveaway ? (
+              <button
+                onClick={onCreateNew}
+                className="px-5 py-3 rounded-xl bg-[#53fc18] hover:bg-[#45d914] text-black font-bold text-sm flex items-center space-x-2 transition-all shadow-lg shadow-[#53fc18]/25"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>Create First Giveaway</span>
+              </button>
+            ) : (
+              <>
+                {!isOpen && !isDrawing && !isCompleted && (
+                  <button
+                    onClick={onOpenGiveaway}
+                    className="px-5 py-2.5 rounded-xl bg-[#53fc18] hover:bg-[#45d914] text-black font-bold text-sm flex items-center space-x-2 transition-all shadow-lg shadow-[#53fc18]/20"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Open Entries ({giveaway.keyword})</span>
+                  </button>
+                )}
+
+                {isOpen && (
+                  <>
+                    <button
+                      onClick={onCloseGiveaway}
+                      className="px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-white border border-white/[0.1] font-semibold text-sm flex items-center space-x-2 transition-all"
+                    >
+                      <Square className="w-3.5 h-3.5 fill-current" />
+                      <span>Close Entries</span>
+                    </button>
+                    <button
+                      onClick={onStartDraw}
+                      disabled={giveaway.participantCount === 0}
+                      className={`px-5 py-2.5 rounded-xl bg-[#53fc18] text-black font-bold text-sm flex items-center space-x-2 transition-all shadow-lg shadow-[#53fc18]/20 ${
+                        giveaway.participantCount === 0
+                          ? 'opacity-40 cursor-not-allowed'
+                          : 'hover:bg-[#45d914]'
+                      }`}
+                    >
+                      <Dice5 className="w-4 h-4" />
+                      <span>Start CS Roulette Draw</span>
+                    </button>
+                  </>
+                )}
+
+                {isDrawing && (
+                  <button
+                    onClick={onRevealWinner}
+                    className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm flex items-center space-x-2 transition-all animate-pulse shadow-lg shadow-amber-400/20"
+                  >
+                    <Trophy className="w-4 h-4" />
+                    <span>Reveal Winner Now</span>
+                  </button>
+                )}
+
+                {isCompleted && (
+                  <button
+                    onClick={() => onNavigateTab('controls')}
+                    className="px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-white border border-white/[0.1] font-semibold text-sm flex items-center space-x-2 transition-all"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Start Another Draw</span>
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Grid of 6 Tactical Telemetry Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-        {/* Card 1: Kick Channel Uplink */}
-        <div className="p-4 rounded-xl tactical-surface tactical-surface-hover flex flex-col justify-between">
+      {/* 4 Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Entrants */}
+        <div className="p-5 rounded-2xl glass-card relative overflow-hidden group">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] telemetry uppercase text-neutral-400 font-bold tracking-wider">
-              UPLINK // KICK CHAT
-            </span>
-            <div
-              className={`w-2 h-2 rounded-full ${
-                kickBot.status === 'connected'
-                  ? 'bg-[#53fc18] led-beacon'
-                  : kickBot.status === 'connecting'
-                  ? 'bg-amber-400 animate-ping'
-                  : 'bg-neutral-600'
-              }`}
-            />
-          </div>
-          <div className="mt-3">
-            <div className="text-base font-bold text-white flex items-center space-x-2 telemetry truncate">
-              <Radio className="w-4 h-4 text-neutral-400" />
-              <span>{kickBot.channelSlug ? `@${kickBot.channelSlug}` : 'OFFLINE'}</span>
-            </div>
-            <div className="text-[11px] telemetry text-neutral-400 mt-1 flex items-center space-x-1.5">
-              <span>STATUS:</span>
-              <span className="text-neutral-200 font-bold uppercase">{kickBot.status}</span>
+            <span className="text-xs font-semibold text-neutral-400">Total Participants</span>
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+              <Users className="w-4 h-4" />
             </div>
           </div>
-          <button
-            onClick={() => onNavigateTab('settings')}
-            className="mt-3 text-[11px] telemetry text-neutral-400 hover:text-white flex items-center space-x-1 transition-colors"
-          >
-            <span>CONFIGURE UPLINK CREDENTIALS</span>
-            <ArrowRight className="w-3 h-3" />
-          </button>
-        </div>
-
-        {/* Card 2: Current Phase */}
-        <div className="p-4 rounded-xl tactical-surface tactical-surface-hover flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] telemetry uppercase text-neutral-400 font-bold tracking-wider">
-              GIVEAWAY STATE
-            </span>
-            <Trophy className="w-4 h-4 text-neutral-400" />
-          </div>
-          <div className="mt-3">
-            {giveaway ? (
-              <div>
-                <span
-                  className={`inline-block text-[10px] telemetry px-2.5 py-0.5 rounded font-bold uppercase border ${
-                    isOpen
-                      ? 'bg-[#53fc18]/15 text-[#53fc18] border-[#53fc18]/30'
-                      : isClosed
-                      ? 'bg-amber-400/15 text-amber-300 border-amber-400/30'
-                      : isDrawing
-                      ? 'bg-rose-500/15 text-rose-400 border-rose-500/30 animate-pulse'
-                      : isCompleted
-                      ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                      : 'bg-neutral-800 text-neutral-400 border-neutral-700'
-                  }`}
-                >
-                  PHASE: {giveaway.status.toUpperCase()}
-                </span>
-                <div className="text-sm font-bold text-white mt-2 truncate">
-                  {giveaway.title}
-                </div>
-              </div>
-            ) : (
-              <div className="text-neutral-500 text-xs telemetry italic">STANDBY // NO ACTIVE MANIFEST</div>
-            )}
-          </div>
-          <div className="mt-3 text-[11px] telemetry text-neutral-400 flex items-center space-x-1.5">
-            <CircleDot className="w-3.5 h-3.5 text-neutral-400" />
-            <span>{isOpen ? 'ENTRIES ACCEPTED VIA CHAT' : 'POOL FROZEN OR IDLE'}</span>
-          </div>
-        </div>
-
-        {/* Card 3: Live Pool Volume */}
-        <div className="p-4 rounded-xl tactical-surface tactical-surface-hover flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] telemetry uppercase text-neutral-400 font-bold tracking-wider">
-              TOTAL ENTRANTS
-            </span>
-            <Users className="w-4 h-4 text-neutral-400" />
-          </div>
-          <div className="mt-3">
-            <div className="text-3xl font-black text-white telemetry">
+          <div className="mt-4">
+            <div className="text-3xl font-extrabold text-white tracking-tight">
               {giveaway ? giveaway.participantCount : 0}
             </div>
-            <div className="text-[11px] telemetry text-neutral-400 mt-0.5">
-              VERIFIED KICK IDENTITIES
-            </div>
+            <p className="text-xs text-neutral-400 mt-1">
+              {isOpen ? 'Active viewers in draw pool' : 'Ready for drawing'}
+            </p>
           </div>
-          <button
-            onClick={() => onNavigateTab('participants')}
-            className="mt-3 text-[11px] telemetry text-neutral-400 hover:text-white flex items-center space-x-1 transition-colors"
-          >
-            <span>INSPECT ENTRANT ROSTER</span>
-            <ArrowRight className="w-3 h-3" />
-          </button>
         </div>
 
-        {/* Card 4: Keyword Trigger */}
-        <div className="p-4 rounded-xl tactical-surface tactical-surface-hover flex flex-col justify-between">
+        {/* Card 2: Status */}
+        <div className="p-5 rounded-2xl glass-card relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] telemetry uppercase text-neutral-400 font-bold tracking-wider">
-              ENTRY TRIGGER
-            </span>
-            <KeyRound className="w-4 h-4 text-neutral-400" />
+            <span className="text-xs font-semibold text-neutral-400">Current Status</span>
+            <div className="w-8 h-8 rounded-lg bg-[#53fc18]/10 border border-[#53fc18]/20 flex items-center justify-center text-[#53fc18]">
+              <Radio className="w-4 h-4" />
+            </div>
           </div>
-          <div className="mt-3">
-            <div
-              className="inline-block text-lg font-bold telemetry px-2.5 py-1 rounded text-white shadow-sm"
-              style={{ backgroundColor: overlaySettings.accentColor }}
-            >
+          <div className="mt-4">
+            <div className="inline-flex items-center space-x-2">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isOpen
+                    ? 'bg-[#53fc18] animate-live-pulse'
+                    : isDrawing
+                    ? 'bg-amber-400 animate-pulse'
+                    : isCompleted
+                    ? 'bg-blue-400'
+                    : 'bg-neutral-500'
+                }`}
+              />
+              <span className="text-xl font-bold text-white capitalize">
+                {giveaway ? giveaway.status : 'Idle'}
+              </span>
+            </div>
+            <p className="text-xs text-neutral-400 mt-1">
+              {isOpen
+                ? 'Chat commands accepted'
+                : isDrawing
+                ? 'Roulette spinning on OBS'
+                : isCompleted
+                ? 'Winner announced'
+                : 'Entries closed'}
+            </p>
+          </div>
+        </div>
+
+        {/* Card 3: Keyword */}
+        <div className="p-5 rounded-2xl glass-card relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-neutral-400">Chat Keyword</span>
+            <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+              <KeyRound className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="text-2xl font-bold text-[#53fc18] font-mono tracking-tight">
               {giveaway ? giveaway.keyword : '!join'}
             </div>
-            <div className="text-[11px] telemetry text-neutral-400 mt-2">
-              CHAT COMMAND PARSER
-            </div>
-          </div>
-          <button
-            onClick={() => onNavigateTab('controls')}
-            className="mt-3 text-[11px] telemetry text-neutral-400 hover:text-white flex items-center space-x-1 transition-colors"
-          >
-            <span>RECONFIGURE KEYWORD</span>
-            <ArrowRight className="w-3 h-3" />
-          </button>
-        </div>
-
-        {/* Card 5: Prize Manifest */}
-        <div className="p-4 rounded-xl tactical-surface tactical-surface-hover flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] telemetry uppercase text-neutral-400 font-bold tracking-wider">
-              PRIZE MANIFEST
-            </span>
-            <Gift className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="mt-3">
-            <div className="text-base font-bold text-white truncate">
-              {giveaway?.prize || 'UNASSIGNED'}
-            </div>
-            <div className="text-[11px] telemetry text-neutral-400 mt-1">
-              OBS BROADCAST ASSET
-            </div>
-          </div>
-          <div className="mt-3 text-[10px] telemetry text-neutral-400">
-            HASH: {giveaway ? giveaway.id.slice(0, 14) : 'NULL'}
+            <p className="text-xs text-neutral-400 mt-1">Type in Kick stream chat to join</p>
           </div>
         </div>
 
-        {/* Card 6: Last Victor */}
-        <div className="p-4 rounded-xl tactical-surface tactical-surface-hover flex flex-col justify-between">
+        {/* Card 4: Prize */}
+        <div className="p-5 rounded-2xl glass-card relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] telemetry uppercase text-neutral-400 font-bold tracking-wider">
-              CONFIRMED VICTOR
-            </span>
-            <Trophy className="w-4 h-4 text-[#53fc18]" />
+            <span className="text-xs font-semibold text-neutral-400">Prize</span>
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <Gift className="w-4 h-4" />
+            </div>
           </div>
-          <div className="mt-3">
-            {giveaway?.winnerUsername ? (
-              <div>
-                <div className="text-xl font-black text-emerald-400 telemetry truncate">
-                  @{giveaway.winnerUsername}
-                </div>
-                <div className="text-[11px] telemetry text-neutral-400 mt-0.5">
-                  CRYPTOGRAPHICALLY DRAWN
-                </div>
-              </div>
-            ) : (
-              <div className="text-neutral-500 text-xs telemetry italic">NO VICTOR SELECTED</div>
-            )}
+          <div className="mt-4">
+            <div className="text-xl font-bold text-white truncate">
+              {giveaway?.prize || 'No prize specified'}
+            </div>
+            <p className="text-xs text-neutral-400 mt-1">Displayed on the OBS overlay</p>
           </div>
-          <button
-            onClick={() => onNavigateTab('history')}
-            className="mt-3 text-[11px] telemetry text-neutral-400 hover:text-white flex items-center space-x-1 transition-colors"
-          >
-            <span>VIEW AUDIT ARCHIVE</span>
-            <ArrowRight className="w-3 h-3" />
-          </button>
         </div>
       </div>
 
-      {/* Quick Tactical Action Toolbar */}
-      {giveaway && (
-        <div className="p-4 rounded-xl bg-[#10131d] border border-[#1d2232] flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>
-            <div className="text-xs font-bold text-white uppercase telemetry tracking-wider">
-              TACTICAL MASTER SWITCHES
+      {/* Winner Spotlight (If revealed) */}
+      {giveaway?.winnerUsername && (
+        <div className="p-6 rounded-2xl bg-gradient-to-r from-[#53fc18]/15 via-emerald-950/30 to-[#0e121d] border border-[#53fc18]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#53fc18] text-black flex items-center justify-center shadow-lg shadow-[#53fc18]/25 flex-shrink-0">
+              <Trophy className="w-6 h-6 stroke-[2.5]" />
             </div>
-            <div className="text-[11px] text-neutral-400">
-              Immediate state overrides without navigating away from the operations center.
+            <div>
+              <span className="text-xs font-bold text-[#53fc18] uppercase tracking-wider">
+                Winner Selected!
+              </span>
+              <div className="text-xl font-extrabold text-white">
+                @{giveaway.winnerUsername}
+              </div>
+              <p className="text-xs text-neutral-400 mt-0.5">
+                Won: {giveaway.prize} • Drawn via cryptographically fair selection
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            {!isOpen && !isDrawing && !isCompleted && (
-              <button
-                onClick={onOpenGiveaway}
-                className="px-4 py-2 rounded-lg text-xs telemetry font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center space-x-2 transition-all shadow-sm"
-              >
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>ARM REGISTRATION ({giveaway.keyword})</span>
-              </button>
-            )}
-
-            {isOpen && (
-              <button
-                onClick={onCloseGiveaway}
-                className="px-4 py-2 rounded-lg text-xs telemetry font-bold bg-amber-600 hover:bg-amber-500 text-white flex items-center space-x-2 transition-all shadow-sm"
-              >
-                <Square className="w-3.5 h-3.5 fill-current" />
-                <span>FREEZE REGISTRATION</span>
-              </button>
-            )}
-
-            {(isClosed || isOpen) && (
-              <button
-                onClick={onStartDraw}
-                disabled={giveaway.participantCount === 0}
-                className={`px-5 py-2 rounded-lg text-xs telemetry font-bold text-white flex items-center space-x-2 transition-all shadow-sm ${
-                  giveaway.participantCount === 0
-                    ? 'opacity-40 cursor-not-allowed bg-neutral-700'
-                    : 'hover:brightness-110'
-                }`}
-                style={{ backgroundColor: overlaySettings.accentColor }}
-              >
-                <Crosshair className="w-3.5 h-3.5" />
-                <span>ENGAGE CS2 ROLL ({giveaway.participantCount})</span>
-              </button>
-            )}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => onNavigateTab('controls')}
+              className="px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-white border border-white/[0.1] text-xs font-semibold transition-all"
+            >
+              Manage Giveaway
+            </button>
           </div>
         </div>
       )}
 
-      {/* Live Entrants Pool Feed */}
-      <div className="p-4 rounded-xl bg-[#0e111a] border border-[#1b202f]">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            <Users className="w-4 h-4 text-neutral-400" />
-            <span className="text-xs font-bold text-white uppercase tracking-wider telemetry">
-              LIVE PARTICIPANT POOL TELEMETRY
-            </span>
+      {/* Live Participants Grid Preview */}
+      <div className="rounded-2xl glass-card p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
+            <Users className="w-5 h-5 text-[#53fc18]" />
+            <div>
+              <h3 className="text-base font-bold text-white">Current Participants</h3>
+              <p className="text-xs text-neutral-400">
+                {participants.length} viewer{participants.length === 1 ? '' : 's'} entered in this giveaway
+              </p>
+            </div>
           </div>
+
           <button
             onClick={() => onNavigateTab('participants')}
-            className="text-[11px] telemetry text-neutral-400 hover:text-white"
+            className="text-xs font-semibold text-[#53fc18] hover:underline flex items-center space-x-1"
           >
-            VIEW FULL ROSTER ({participants.length})
+            <span>View All</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {participants.length === 0 ? (
-          <div className="text-center py-10 text-neutral-500 text-xs telemetry">
-            ROSTER EMPTY // NO VIEWERS HAVE JOINED THIS MANIFEST
+          <div className="py-10 text-center space-y-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+            <p className="text-sm text-neutral-400 font-medium">No participants yet</p>
+            <p className="text-xs text-neutral-500 max-w-sm mx-auto">
+              When viewers type <span className="text-[#53fc18] font-mono font-semibold">{giveaway?.keyword || '!join'}</span> in your Kick chat, they will appear here in real time.
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-            {participants.slice(0, 12).map((p, idx) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+            {participants.slice(0, 18).map((p) => (
               <div
                 key={p.id}
-                className="flex items-center space-x-2 p-2 rounded-lg bg-[#121622] border border-[#1d2335] text-xs"
+                className="flex items-center space-x-2.5 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.12] transition-all"
               >
-                <div
-                  className="w-6 h-6 rounded flex items-center justify-center font-bold text-white text-[10px] telemetry flex-shrink-0"
-                  style={{ backgroundColor: overlaySettings.accentColor }}
-                >
+                <div className="w-7 h-7 rounded-lg bg-[#53fc18]/15 text-[#53fc18] font-bold text-xs flex items-center justify-center flex-shrink-0">
                   {p.username.charAt(0).toUpperCase()}
                 </div>
-                <div className="truncate font-semibold text-neutral-200 text-[11px] telemetry">
+                <span className="text-xs font-medium text-neutral-200 truncate">
                   {p.username}
-                </div>
+                </span>
               </div>
             ))}
           </div>

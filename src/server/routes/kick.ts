@@ -13,6 +13,29 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
     res.json(kickBot.getState());
   });
 
+  // OAuth Redirect URL callback from Kick Developer Portal
+  router.get('/callback', (req, res) => {
+    const { code, error, error_description } = req.query;
+    if (error) {
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head><title>Kick Authorization</title></head>
+          <body style="background:#090d16;color:#ffffff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+            <div style="background:#131826;padding:32px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);max-width:440px;text-align:center;">
+              <h2 style="color:#f43f5e;margin-top:0;">Authorization Failed</h2>
+              <p style="color:#94a3b8;font-size:14px;">${error_description || error}</p>
+              <a href="/settings" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#53fc18;color:#000;text-decoration:none;font-weight:bold;border-radius:8px;">Return to Settings</a>
+            </div>
+          </body>
+        </html>
+      `);
+      return;
+    }
+    // Return to dashboard
+    res.redirect(`/?oauth_code=${encodeURIComponent(String(code || ''))}`);
+  });
+
   // Connect to Kick chat
   router.post('/connect', requireAdminAuth, async (req, res) => {
     try {

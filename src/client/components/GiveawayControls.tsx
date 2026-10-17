@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Play,
   Square,
-  Crosshair,
+  Trophy,
   RotateCcw,
   Plus,
   Megaphone,
@@ -11,7 +11,10 @@ import {
   Gift,
   KeyRound,
   FileText,
-  Layers,
+  Dice5,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
 import type { Giveaway, Participant, OverlaySettings } from '../../shared/types.js';
 
@@ -41,8 +44,8 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
   onRevealWinner,
   onOpenResetConfirmModal,
 }) => {
-  const [newTitle, setNewTitle] = useState('Championship Knife Giveaway');
-  const [newPrize, setNewPrize] = useState('M9 Bayonet | Fade (Factory New)');
+  const [newTitle, setNewTitle] = useState('Kick Stream Giveaway');
+  const [newPrize, setNewPrize] = useState('$50 Steam Gift Card');
   const [newKeyword, setNewKeyword] = useState('!join');
   const [customKeyword, setCustomKeyword] = useState('');
   const [isEditingKeyword, setIsEditingKeyword] = useState(false);
@@ -63,7 +66,7 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
     setFeedback(null);
     try {
       await onCreateGiveaway(newTitle, newPrize, newKeyword);
-      setFeedback({ type: 'success', message: 'Giveaway manifest initialized successfully.' });
+      setFeedback({ type: 'success', message: 'Giveaway created successfully.' });
     } catch (err: any) {
       setFeedback({ type: 'error', message: err.message });
     } finally {
@@ -83,326 +86,303 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl pb-12">
       {/* Page Header */}
-      <div className="pb-4 border-b border-[#1b1f2e]">
-        <h2 className="text-xl font-black text-white tracking-wider uppercase telemetry">
-          Master Control Deck
-        </h2>
-        <p className="text-xs text-neutral-400 mt-0.5">
-          Authoritative state machine, registration triggers, and CS2 case-opening roll engagement.
+      <div>
+        <h2 className="text-xl font-bold text-white tracking-tight">Giveaway Controls</h2>
+        <p className="text-xs text-neutral-400 mt-1">
+          Manage your active giveaway, open or close viewer registration, and roll the CS2 case-opening animation.
         </p>
       </div>
 
       {feedback && (
         <div
-          className={`p-3.5 rounded-lg text-xs telemetry font-medium border flex items-center space-x-2 animate-fade-in ${
+          className={`p-4 rounded-xl text-sm font-medium border flex items-center space-x-2.5 transition-all ${
             feedback.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+              ? 'bg-[#53fc18]/10 text-[#53fc18] border-[#53fc18]/30'
               : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
           }`}
         >
           {feedback.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
           ) : (
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 flex-shrink-0" />
           )}
           <span>{feedback.message}</span>
         </div>
       )}
 
-      {/* Main Section: Either Active Giveaway Controls or New Creation Form */}
       {giveaway ? (
-        <div className="space-y-5">
-          {/* Active Manifest Deck */}
-          <div className="p-5 rounded-xl tactical-surface space-y-5">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#1b202e]">
+        <div className="space-y-6">
+          {/* Active Giveaway Control Card */}
+          <div className="p-6 rounded-2xl glass-card space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-white/[0.08]">
               <div>
                 <div className="flex items-center space-x-3">
-                  <h3 className="text-lg font-bold text-white tracking-wide">{giveaway.title}</h3>
+                  <h3 className="text-xl font-extrabold text-white tracking-tight">{giveaway.title}</h3>
                   <span
-                    className={`text-[10px] telemetry uppercase px-2 py-0.5 rounded font-bold border ${
+                    className={`text-xs px-2.5 py-0.5 rounded-full font-bold capitalize border ${
                       isOpen
-                        ? 'bg-[#53fc18]/15 text-[#53fc18] border-[#53fc18]/30 led-beacon'
+                        ? 'bg-[#53fc18]/15 text-[#53fc18] border-[#53fc18]/30'
                         : isClosed
                         ? 'bg-amber-400/15 text-amber-300 border-amber-400/30'
                         : isDrawing
                         ? 'bg-rose-500/15 text-rose-400 border-rose-500/30 animate-pulse'
                         : isCompleted
                         ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                        : 'bg-neutral-800 text-neutral-400'
+                        : 'bg-white/10 text-neutral-300 border-white/10'
                     }`}
                   >
-                    STATE: {status.toUpperCase()}
+                    {status}
                   </span>
                 </div>
-                <div className="flex items-center space-x-3 mt-1.5 text-xs text-neutral-400 telemetry">
+                <div className="flex items-center space-x-3 mt-2 text-xs text-neutral-400">
                   <span className="flex items-center space-x-1">
                     <Gift className="w-3.5 h-3.5 text-amber-400" />
-                    <span>PRIZE: <strong className="text-white font-sans">{giveaway.prize}</strong></span>
+                    <span>Prize: <strong className="text-white font-medium">{giveaway.prize}</strong></span>
                   </span>
                   <span>•</span>
-                  <span>ENTRANTS: <strong className="text-white font-bold">{giveaway.participantCount}</strong></span>
-                  <span>•</span>
-                  <span className="text-neutral-400">ID: {giveaway.id.slice(0, 14)}</span>
+                  <span>Participants: <strong className="text-[#53fc18] font-bold">{giveaway.participantCount}</strong></span>
                 </div>
               </div>
 
               {/* Inline Keyword Editor */}
-              <div className="flex items-center space-x-2 bg-[#121622] px-3 py-1.5 rounded-lg border border-[#1e2436]">
-                <KeyRound className="w-3.5 h-3.5 text-neutral-400" />
+              <div className="flex items-center space-x-2 bg-white/[0.04] p-2 rounded-xl border border-white/[0.08]">
+                <KeyRound className="w-4 h-4 text-[#53fc18]" />
                 {isEditingKeyword ? (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1.5">
                     <input
                       type="text"
                       value={customKeyword}
                       onChange={(e) => setCustomKeyword(e.target.value)}
                       placeholder="!keyword"
-                      className="bg-[#181d2a] px-2 py-1 rounded text-xs telemetry text-white border border-[#2b334a] focus:outline-none w-28"
+                      className="bg-black/60 px-2.5 py-1 rounded-lg text-xs font-mono text-white border border-[#53fc18]/50 focus:outline-none w-28"
                     />
                     <button
                       onClick={handleKeywordSave}
-                      className="px-2 py-1 rounded bg-emerald-600 text-[10px] telemetry font-bold text-white uppercase"
+                      className="p-1 rounded bg-[#53fc18] text-black hover:bg-[#45d914]"
                     >
-                      SAVE
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
                     </button>
                     <button
                       onClick={() => setIsEditingKeyword(false)}
-                      className="px-2 py-1 rounded bg-neutral-700 text-[10px] telemetry text-neutral-300 uppercase"
+                      className="p-1 rounded bg-white/[0.1] text-neutral-300 hover:bg-white/[0.2]"
                     >
-                      CANCEL
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-[11px] telemetry text-neutral-400 uppercase">Trigger:</span>
-                    <span
-                      className="text-xs telemetry font-bold px-2 py-0.5 rounded text-white"
-                      style={{ backgroundColor: overlaySettings.accentColor }}
-                    >
-                      {giveaway.keyword}
-                    </span>
+                  <div className="flex items-center space-x-2 text-xs">
+                    <span className="text-neutral-400">Keyword:</span>
+                    <span className="font-mono font-bold text-[#53fc18]">{giveaway.keyword}</span>
                     <button
                       onClick={() => {
                         setCustomKeyword(giveaway.keyword);
                         setIsEditingKeyword(true);
                       }}
-                      className="text-[10px] telemetry text-neutral-400 hover:text-white underline ml-1"
+                      className="text-neutral-400 hover:text-white transition-colors"
+                      title="Edit keyword"
                     >
-                      EDIT
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Lifecycle Phase Progression Stepper */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-xs">
+            {/* Stepper Progression */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div
-                className={`p-3 rounded-lg border ${
+                className={`p-3.5 rounded-xl border transition-all ${
                   isOpen
-                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300 font-semibold'
-                    : 'bg-[#11141e] border-[#1c2232] text-neutral-400'
+                    ? 'bg-[#53fc18]/10 border-[#53fc18]/40 text-[#53fc18]'
+                    : 'bg-white/[0.02] border-white/[0.06] text-neutral-400'
                 }`}
               >
-                <div className="telemetry font-bold text-[9px] text-neutral-400 uppercase">PHASE 01</div>
-                <div className="mt-0.5 font-bold telemetry text-xs">1. REGISTRATION OPEN</div>
-                <div className="text-[10px] text-neutral-400 mt-0.5">Chat entrants accepted</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Step 1</div>
+                <div className="text-xs font-bold mt-0.5 text-white">Registration Open</div>
+                <div className="text-[11px] text-neutral-400 mt-0.5">Chat entries accepted</div>
               </div>
 
               <div
-                className={`p-3 rounded-lg border ${
+                className={`p-3.5 rounded-xl border transition-all ${
                   isClosed
-                    ? 'bg-amber-400/10 border-amber-400/40 text-amber-300 font-semibold'
-                    : 'bg-[#11141e] border-[#1c2232] text-neutral-400'
+                    ? 'bg-amber-400/10 border-amber-400/40 text-amber-300'
+                    : 'bg-white/[0.02] border-white/[0.06] text-neutral-400'
                 }`}
               >
-                <div className="telemetry font-bold text-[9px] text-neutral-400 uppercase">PHASE 02</div>
-                <div className="mt-0.5 font-bold telemetry text-xs">2. ROSTER FROZEN</div>
-                <div className="text-[10px] text-neutral-400 mt-0.5">Pool locked for draw</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Step 2</div>
+                <div className="text-xs font-bold mt-0.5 text-white">Entries Closed</div>
+                <div className="text-[11px] text-neutral-400 mt-0.5">Pool locked for roll</div>
               </div>
 
               <div
-                className={`p-3 rounded-lg border ${
+                className={`p-3.5 rounded-xl border transition-all ${
                   isDrawing
-                    ? 'bg-rose-500/10 border-rose-500/40 text-rose-300 font-semibold'
-                    : 'bg-[#11141e] border-[#1c2232] text-neutral-400'
+                    ? 'bg-purple-500/10 border-purple-500/40 text-purple-300'
+                    : 'bg-white/[0.02] border-white/[0.06] text-neutral-400'
                 }`}
               >
-                <div className="telemetry font-bold text-[9px] text-neutral-400 uppercase">PHASE 03</div>
-                <div className="mt-0.5 font-bold telemetry text-xs">3. CS2 ROULETTE</div>
-                <div className="text-[10px] text-neutral-400 mt-0.5">OBS roll engaged</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Step 3</div>
+                <div className="text-xs font-bold mt-0.5 text-white">CS2 Roulette</div>
+                <div className="text-[11px] text-neutral-400 mt-0.5">Rolling live on stream</div>
               </div>
 
               <div
-                className={`p-3 rounded-lg border ${
+                className={`p-3.5 rounded-xl border transition-all ${
                   isCompleted
-                    ? 'bg-blue-500/10 border-blue-500/40 text-blue-300 font-semibold'
-                    : 'bg-[#11141e] border-[#1c2232] text-neutral-400'
+                    ? 'bg-blue-500/10 border-blue-500/40 text-blue-300'
+                    : 'bg-white/[0.02] border-white/[0.06] text-neutral-400'
                 }`}
               >
-                <div className="telemetry font-bold text-[9px] text-neutral-400 uppercase">PHASE 04</div>
-                <div className="mt-0.5 font-bold telemetry text-xs">4. VICTOR DECLARED</div>
-                <div className="text-[10px] text-neutral-400 mt-0.5">
-                  {giveaway.winnerUsername ? `@${giveaway.winnerUsername}` : 'Ledger updated'}
+                <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Step 4</div>
+                <div className="text-xs font-bold mt-0.5 text-white">Winner Revealed</div>
+                <div className="text-[11px] text-neutral-400 mt-0.5">
+                  {giveaway.winnerUsername ? `@${giveaway.winnerUsername}` : 'Ready for next giveaway'}
                 </div>
               </div>
             </div>
 
-            {/* Tactical Action Switches */}
-            <div className="pt-3 flex flex-wrap items-center gap-2.5">
-              {/* Arm Entries */}
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               {!isOpen && !isDrawing && !isCompleted && (
                 <button
                   onClick={onOpenEntries}
-                  className="px-5 py-2.5 rounded-lg text-xs telemetry font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center space-x-2 shadow-sm transition-all uppercase"
+                  className="px-5 py-2.5 rounded-xl bg-[#53fc18] hover:bg-[#45d914] text-black font-bold text-xs flex items-center space-x-2 transition-all shadow-md shadow-[#53fc18]/20"
                 >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>ARM REGISTRATION ({giveaway.keyword})</span>
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Open Registration ({giveaway.keyword})</span>
                 </button>
               )}
 
-              {/* Close Entries */}
               {isOpen && (
                 <button
                   onClick={onCloseEntries}
-                  className="px-5 py-2.5 rounded-lg text-xs telemetry font-bold bg-amber-600 hover:bg-amber-500 text-white flex items-center space-x-2 shadow-sm transition-all uppercase"
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs flex items-center space-x-2 transition-all shadow-md shadow-amber-500/20"
                 >
                   <Square className="w-3.5 h-3.5 fill-current" />
-                  <span>FREEZE REGISTRATION</span>
+                  <span>Close Registration</span>
                 </button>
               )}
 
-              {/* Engage CS2 Roll */}
               {(isClosed || isOpen) && (
                 <button
                   onClick={onStartDraw}
                   disabled={giveaway.participantCount === 0 || isDrawing}
-                  className={`px-6 py-2.5 rounded-lg text-xs telemetry font-bold text-white flex items-center space-x-2 shadow-sm transition-all uppercase ${
+                  className={`px-6 py-2.5 rounded-xl bg-[#53fc18] text-black font-bold text-xs flex items-center space-x-2 transition-all shadow-md shadow-[#53fc18]/20 ${
                     giveaway.participantCount === 0 || isDrawing
-                      ? 'opacity-40 cursor-not-allowed bg-neutral-700'
-                      : 'hover:brightness-110'
+                      ? 'opacity-40 cursor-not-allowed bg-neutral-600 text-neutral-300'
+                      : 'hover:bg-[#45d914]'
                   }`}
-                  style={{ backgroundColor: overlaySettings.accentColor }}
                 >
-                  <Crosshair className="w-4 h-4" />
-                  <span>ENGAGE CS2 ROLL ({giveaway.participantCount} ENTRANTS)</span>
+                  <Dice5 className="w-4 h-4" />
+                  <span>Roll CS2 Roulette ({giveaway.participantCount} Viewers)</span>
                 </button>
               )}
 
-              {/* Reveal & Broadcast in Chat */}
               {isDrawing && (
                 <button
                   onClick={onRevealWinner}
-                  className="px-5 py-2.5 rounded-lg text-xs telemetry font-bold bg-blue-600 hover:bg-blue-500 text-white flex items-center space-x-2 shadow-sm transition-all uppercase"
+                  className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-xs flex items-center space-x-2 transition-all shadow-md animate-pulse"
                 >
-                  <Megaphone className="w-3.5 h-3.5" />
-                  <span>BROADCAST TO KICK CHAT</span>
+                  <Trophy className="w-4 h-4" />
+                  <span>Reveal Winner Now</span>
                 </button>
               )}
 
-              {/* Reset Manifest */}
               <button
                 onClick={onOpenResetConfirmModal}
-                className="px-4 py-2.5 rounded-lg text-xs telemetry font-semibold text-neutral-400 hover:text-white bg-[#141722] hover:bg-[#1b202f] border border-[#23293c] flex items-center space-x-2 transition-all ml-auto uppercase"
+                className="px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-neutral-300 border border-white/[0.08] text-xs font-semibold flex items-center space-x-2 transition-all ml-auto"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>RESET MANIFEST</span>
+                <span>Reset Giveaway</span>
               </button>
             </div>
           </div>
 
-          {/* Victor Banner if Completed */}
+          {/* Winner Banner if Completed */}
           {isCompleted && giveaway.winnerUsername && (
-            <div className="p-5 rounded-xl bg-gradient-to-r from-[#0d1512] to-[#0a1012] border border-emerald-500/30 flex items-center justify-between">
-              <div className="flex items-center space-x-3.5">
-                <div className="w-12 h-12 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                  <Trophy className="w-6 h-6" />
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-[#53fc18]/15 via-emerald-950/25 to-[#0f1420] border border-[#53fc18]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-2xl bg-[#53fc18] text-black flex items-center justify-center shadow-lg shadow-[#53fc18]/25 flex-shrink-0">
+                  <Trophy className="w-6 h-6 stroke-[2.5]" />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase telemetry tracking-wider text-emerald-400 font-bold">
-                    OFFICIAL DRAW WINNER
+                  <div className="text-xs font-bold uppercase tracking-wider text-[#53fc18]">
+                    Official Winner
                   </div>
-                  <div className="text-2xl font-black text-white telemetry">
+                  <div className="text-2xl font-black text-white">
                     @{giveaway.winnerUsername}
                   </div>
-                  <div className="text-xs text-neutral-400">
-                    Prize: {giveaway.prize} • Archived in ledger
+                  <div className="text-xs text-neutral-400 mt-0.5">
+                    Prize: {giveaway.prize} • Recorded in history ledger
                   </div>
                 </div>
               </div>
 
               <button
                 onClick={onOpenResetConfirmModal}
-                className="px-4 py-2 rounded-lg text-xs telemetry font-bold text-white shadow-sm hover:brightness-110 transition-all uppercase"
-                style={{ backgroundColor: overlaySettings.accentColor }}
+                className="px-5 py-2.5 rounded-xl bg-[#53fc18] hover:bg-[#45d914] text-black font-bold text-xs transition-all shadow-md"
               >
-                NEW GIVEAWAY
+                Start New Giveaway
               </button>
             </div>
           )}
         </div>
       ) : (
-        /* Form: Create New Manifest */
-        <div className="p-5 rounded-xl tactical-surface max-w-2xl">
+        /* Create Giveaway Form */
+        <div className="p-6 rounded-2xl glass-card max-w-xl">
           <div className="flex items-center space-x-3 mb-5">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm"
-              style={{ backgroundColor: overlaySettings.accentColor }}
-            >
-              <Plus className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-[#53fc18]/15 border border-[#53fc18]/30 flex items-center justify-center text-[#53fc18]">
+              <Plus className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white uppercase telemetry tracking-wider">
-                Initialize Giveaway Manifest
-              </h3>
-              <p className="text-xs text-neutral-400">
-                Configure your prize, title, and chat trigger command.
-              </p>
+              <h3 className="text-base font-bold text-white">Create New Giveaway</h3>
+              <p className="text-xs text-neutral-400">Set your prize, title, and the chat entry keyword.</p>
             </div>
           </div>
 
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
-              <label className="block text-[11px] telemetry uppercase text-neutral-400 mb-1 font-bold">
-                Giveaway Title
+              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                Giveaway Title *
               </label>
               <div className="relative">
-                <FileText className="w-4 h-4 text-neutral-500 absolute left-3 top-2.5" />
+                <FileText className="w-4 h-4 text-neutral-500 absolute left-3.5 top-3" />
                 <input
                   type="text"
                   required
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="e.g. Championship Finals Knife Giveaway"
-                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#11141e] border border-[#1e2436] text-white text-xs focus:outline-none focus:border-neutral-400 transition-colors"
+                  placeholder="e.g. Friday Community Giveaway"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-black/40 border border-white/[0.1] text-white text-sm focus:border-[#53fc18] focus:outline-none transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] telemetry uppercase text-neutral-400 mb-1 font-bold">
-                Prize Manifest
+              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                Prize Description *
               </label>
               <div className="relative">
-                <Gift className="w-4 h-4 text-neutral-500 absolute left-3 top-2.5" />
+                <Gift className="w-4 h-4 text-neutral-500 absolute left-3.5 top-3" />
                 <input
                   type="text"
                   required
                   value={newPrize}
                   onChange={(e) => setNewPrize(e.target.value)}
-                  placeholder="e.g. Karambit Doppler / $100 Steam Card"
-                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#11141e] border border-[#1e2436] text-white text-xs focus:outline-none focus:border-neutral-400 transition-colors"
+                  placeholder="e.g. $50 Steam Card or CS2 Skin"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-black/40 border border-white/[0.1] text-white text-sm focus:border-[#53fc18] focus:outline-none transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] telemetry uppercase text-neutral-400 mb-1 font-bold">
-                Chat Trigger Keyword (Must begin with !)
+              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                Chat Entry Keyword (Must start with !) *
               </label>
               <div className="relative">
-                <KeyRound className="w-4 h-4 text-neutral-500 absolute left-3 top-2.5" />
+                <KeyRound className="w-4 h-4 text-neutral-500 absolute left-3.5 top-3" />
                 <input
                   type="text"
                   required
@@ -410,22 +390,21 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
                   onChange={(e) => setNewKeyword(e.target.value)}
                   placeholder="!join"
                   pattern="^![a-zA-Z0-9_-]+$"
-                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#11141e] border border-[#1e2436] text-white text-xs telemetry focus:outline-none focus:border-neutral-400 transition-colors"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-black/40 border border-white/[0.1] text-[#53fc18] font-mono text-sm focus:border-[#53fc18] focus:outline-none transition-colors"
                 />
               </div>
-              <p className="text-[10px] telemetry text-neutral-400 mt-1">
-                Viewers type this exact trigger in your Kick chat to enter.
+              <p className="text-[11px] text-neutral-400 mt-1">
+                Viewers enter by typing this keyword into your Kick chat.
               </p>
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-2.5 rounded-lg text-xs telemetry font-bold text-white shadow-sm hover:brightness-110 transition-all flex items-center justify-center space-x-2 mt-4 uppercase tracking-wider"
-              style={{ backgroundColor: overlaySettings.accentColor }}
+              className="w-full py-3 rounded-xl bg-[#53fc18] hover:bg-[#45d914] text-black font-bold text-sm flex items-center justify-center space-x-2 transition-all shadow-lg shadow-[#53fc18]/25 mt-2"
             >
-              <Plus className="w-4 h-4" />
-              <span>{isSubmitting ? 'INITIALIZING...' : 'INITIALIZE MANIFEST'}</span>
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>{isSubmitting ? 'Creating...' : 'Create Giveaway'}</span>
             </button>
           </form>
         </div>
