@@ -147,6 +147,11 @@ export class GiveawayService {
     gw.openedAt = openedAt;
 
     this.broadcaster.emitEvent('giveaway.opened', gw);
+
+    if (this.appSettings.botReplyEnabled) {
+      this.kickBot.announceGiveawayOpened(gw.title, gw.prize, gw.keyword);
+    }
+
     return gw;
   }
 
@@ -165,6 +170,11 @@ export class GiveawayService {
     gw.closedAt = closedAt;
 
     this.broadcaster.emitEvent('giveaway.closed', gw);
+
+    if (this.appSettings.botReplyEnabled) {
+      this.kickBot.announceGiveawayClosed(gw.title, gw.participantCount);
+    }
+
     return gw;
   }
 

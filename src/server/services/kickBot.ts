@@ -281,6 +281,24 @@ export class KickBotService extends EventEmitter {
   }
 
   /**
+   * Announce giveaway opened in Kick chat
+   */
+  public async announceGiveawayOpened(title: string, prize: string, keyword: string): Promise<void> {
+    if (!this.config.botReplyEnabled) return;
+    const announcement = `📢 GIVEAWAY STARTED: "${title}"! Prize: ${prize}. Type ${keyword} in chat to enter!`;
+    await this.queueChatReply(announcement);
+  }
+
+  /**
+   * Announce giveaway closed in Kick chat
+   */
+  public async announceGiveawayClosed(title: string, participantCount: number): Promise<void> {
+    if (!this.config.botReplyEnabled) return;
+    const announcement = `🛑 GIVEAWAY ENTRIES CLOSED: Entries for "${title}" are now locked (${participantCount} participants). Rolling the winner on stream now!`;
+    await this.queueChatReply(announcement);
+  }
+
+  /**
    * Announce winner in Kick chat
    */
   public async announceWinner(winnerUsername: string, prize: string): Promise<void> {
