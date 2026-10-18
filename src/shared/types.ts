@@ -22,6 +22,9 @@ export interface Giveaway {
   openedAt: string | null;
   closedAt: string | null;
   completedAt: string | null;
+  wheelEnabled?: boolean;
+  wheelAmounts?: string[];
+  rolledPrize?: string | null;
 }
 
 export interface DrawRollCard {
@@ -38,6 +41,11 @@ export interface DrawAnimationData {
   targetIndex: number;
   durationSec: number;
   startedAt: number;
+  wheelEnabled?: boolean;
+  wheelSegments?: string[];
+  rolledPrize?: string;
+  wheelTargetIndex?: number;
+  wheelDurationSec?: number;
 }
 
 export type KickConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -64,6 +72,8 @@ export interface OverlaySettings {
   scale: number;
   position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right' | 'center';
   layoutStyle?: 'pill' | 'bar' | 'card';
+  wheelEnabled?: boolean;
+  wheelAmounts?: string[];
 }
 
 export interface AppSettings {
@@ -83,6 +93,7 @@ export interface AppSettings {
   botWinnerTemplate?: string;
   botOpenedTemplate?: string;
   botClosedTemplate?: string;
+  defaultWheelAmounts?: string[];
 }
 
 export interface StateSyncPayload {

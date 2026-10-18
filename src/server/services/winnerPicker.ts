@@ -6,14 +6,22 @@ export interface WinnerSelectionResult {
   drawData: DrawAnimationData;
 }
 
+export interface WheelDrawConfig {
+  enabled?: boolean;
+  segments?: string[];
+  durationSec?: number;
+}
+
 /**
  * Selects a winner with zero modulo bias using Node.js crypto.randomInt
- * and prepares deterministic animation cards for the CS-style horizontal roll.
+ * and prepares deterministic animation cards for the CS-style horizontal roll
+ * and optional half-wheel prize selector.
  */
 export function selectWinnerUniformly(
   giveawayId: string,
   eligibleParticipants: Participant[],
-  durationSec: number = 7.5
+  durationSec: number = 7.5,
+  wheelConfig?: WheelDrawConfig
 ): WinnerSelectionResult {
   if (!eligibleParticipants || eligibleParticipants.length === 0) {
     throw new Error('Cannot select a winner from an empty participant list.');
@@ -24,6 +32,21 @@ export function selectWinnerUniformly(
   // crypto.randomInt(min, max) produces uniform integers in [min, max) with zero modulo bias
   const winningIndex = crypto.randomInt(0, eligibleCount);
   const winner = eligibleParticipants[winningIndex];
+
+  // Optional prize wheel selection
+  let wheelEnabled = false;
+  let wheelSegments: string[] | undefined;
+  let rolledPrize: string | undefined;
+  let wheelTargetIndex: number | undefined;
+  let wheelDurationSec: number | undefined;
+
+  if (wheelConfig?.enabled && wheelConfig.segments && wheelConfig.segments.length > 0) {
+    wheelEnabled = true;
+    wheelSegments = wheelConfig.segments;
+    wheelTargetIndex = crypto.randomInt(0, wheelSegments.length);
+    rolledPrize = wheelSegments[wheelTargetIndex];
+    wheelDurationSec = wheelConfig.durationSec || 4.2;
+  }
 
   // Build the horizontal roll cards strip.
   // Standard CS-style roll typically contains ~55-65 cards, with target stopping around index 48-52.
@@ -60,6 +83,11 @@ export function selectWinnerUniformly(
     targetIndex: TARGET_INDEX,
     durationSec,
     startedAt: Date.now(),
+    wheelEnabled,
+    wheelSegments,
+    rolledPrize,
+    wheelTargetIndex,
+    wheelDurationSec,
   };
 
   return {

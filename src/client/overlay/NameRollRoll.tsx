@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { DrawAnimationData } from '../../shared/types.js';
 import { sfx } from './soundEffects.js';
+import { PrizeWheel } from './PrizeWheel.js';
 
 interface NameRollProps {
   drawData: DrawAnimationData;
@@ -8,6 +9,7 @@ interface NameRollProps {
   soundEnabled?: boolean;
   soundVolume?: number;
   accentColor?: string;
+  onPrizeLocked?: (prize: string) => void;
   onComplete?: () => void;
 }
 
@@ -17,18 +19,30 @@ export const NameRoll: React.FC<NameRollProps> = ({
   soundEnabled = true,
   soundVolume = 0.8,
   accentColor = '#53fc18',
+  onPrizeLocked,
   onComplete,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
-  const [isFinished, setIsFinished] = useState(false);
+
+  const isWheelMode = Boolean(
+    drawData.wheelEnabled && drawData.wheelSegments && drawData.wheelSegments.length > 0
+  );
+
+  const [stage, setStage] = useState<'wheel' | 'names' | 'finished'>(
+    isWheelMode ? 'wheel' : 'names'
+  );
+  const [resolvedPrize, setResolvedPrize] = useState<string>(drawData.rolledPrize || '');
 
   const CARD_WIDTH = 150;
   const CARD_GAP = 12;
   const STRIDE = CARD_WIDTH + CARD_GAP;
 
+  // Run the horizontal name roll ONLY once wheel phase finishes (or immediately if wheel disabled)
   useEffect(() => {
     sfx.setConfig(soundEnabled, soundVolume);
+
+    if (stage !== 'names') return;
 
     const container = containerRef.current;
     const strip = stripRef.current;
@@ -78,7 +92,7 @@ export const NameRoll: React.FC<NameRollProps> = ({
       if (progress < 1) {
         animFrame = requestAnimationFrame(animate);
       } else {
-        setIsFinished(true);
+        setStage('finished');
         sfx.playWinnerChime();
         // Pause 1 second on winner before opening the victory card
         setTimeout(() => {
@@ -92,26 +106,82 @@ export const NameRoll: React.FC<NameRollProps> = ({
     return () => {
       cancelAnimationFrame(animFrame);
     };
-  }, [drawData, durationSec, soundEnabled, soundVolume]);
+  }, [stage, drawData, durationSec, soundEnabled, soundVolume, onComplete]);
+
+  const handlePrizeLocked = (prize: string) => {
+    setResolvedPrize(prize);
+    onPrizeLocked?.(prize);
+    setStage('names');
+  };
+
+  const isFinished = stage === 'finished';
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto my-3 select-none filter drop-shadow-2xl">
-      {/* Clean Streamer Header */}
-      <div className="flex items-center justify-between mb-2 px-3 py-1.5 rounded-xl bg-[#0a0d16]/90 border border-white/[0.08] backdrop-blur-md">
-        <div className="flex items-center space-x-2">
-          <span
-            className={`w-2 h-2 rounded-full ${isFinished ? 'bg-[#53fc18]' : 'bg-[#53fc18] animate-ping'}`}
-            style={{ boxShadow: `0 0 8px #53fc18` }}
+    <div className="relative w-full max-w-4xl mx-auto my-2 select-none filter drop-shadow-2xl flex flex-col items-center">
+      {/* Half-Wheel on Top (if wheel mode is active) */}
+      {isWheelMode && (
+        <div className="z-10 -mb-2 transition-all duration-300">
+          <PrizeWheel
+            segments={drawData.wheelSegments!}
+            targetPrize={drawData.rolledPrize}
+            targetIndex={drawData.wheelTargetIndex}
+            durationSec={drawData.wheelDurationSec || 4.2}
+            soundEnabled={soundEnabled}
+            soundVolume={soundVolume}
+            accentColor={accentColor}
+            onPrizeLocked={handlePrizeLocked}
           />
-          <span className="text-xs font-bold tracking-wide text-white uppercase font-sans">
-            {isFinished ? 'WINNER SELECTED' : 'DRAW IN PROGRESS'}
-          </span>
         </div>
+      )}
 
-        <div className="text-[11px] font-mono text-neutral-400">
-          ENTRANTS: <span className="font-bold text-white">{drawData.rollCards.length}</span>
+      {/* Main Roll Section */}
+      <div className="w-full relative z-20">
+        {/* Streamer Progress Bar Header */}
+        <div className="flex items-center justify-between mb-2 px-3.5 py-1.5 rounded-xl bg-[#0a0d16]/90 border border-white/[0.08] backdrop-blur-md">
+          <div className="flex items-center space-x-2">
+            <span
+              className={`w-2.5 h-2.5 rounded-full ${
+                isFinished
+                  ? 'bg-[#53fc18]'
+                  : stage === 'wheel'
+                  ? 'bg-amber-400 animate-pulse'
+                  : 'bg-[#53fc18] animate-ping'
+              }`}
+              style={{ boxShadow: isFinished ? `0 0 8px #53fc18` : undefined }}
+            />
+            <span className="text-xs font-bold tracking-wide text-white uppercase font-sans">
+              {stage === 'wheel' ? (
+                <span className="text-amber-300">STAGE 1: ROLLING PRIZE AMOUNT...</span>
+              ) : stage === 'names' ? (
+                <span>
+                  STAGE 2: ROLLING WINNER FOR{' '}
+                  <strong style={{ color: accentColor }}>
+                    {resolvedPrize || drawData.rolledPrize || 'PRIZE'}
+                  </strong>
+                </span>
+              ) : (
+                <span style={{ color: accentColor }}>
+                  WINNER: @{drawData.winner.username}{' '}
+                  {resolvedPrize ? `(${resolvedPrize})` : ''}
+                </span>
+              )}
+            </span>
+          </div>
+
+          <div className="text-[11px] font-mono text-neutral-400 flex items-center space-x-2">
+            {resolvedPrize && (
+              <span
+                className="px-2 py-0.5 rounded text-[10px] font-bold text-black"
+                style={{ backgroundColor: accentColor }}
+              >
+                PRIZE: {resolvedPrize}
+              </span>
+            )}
+            <span>
+              ENTRANTS: <span className="font-bold text-white">{drawData.rollCards.length}</span>
+            </span>
+          </div>
         </div>
-      </div>
 
       {/* Main Roll Container */}
       <div
@@ -221,5 +291,6 @@ export const NameRoll: React.FC<NameRollProps> = ({
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };

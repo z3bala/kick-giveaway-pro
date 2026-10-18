@@ -112,6 +112,68 @@ class SoundEffectsManager {
       });
     } catch {}
   }
+
+  /**
+   * Snappy mechanical ratchet tick for prize wheel segment passing the needle
+   */
+  public playWheelTick(): void {
+    if (this.isMuted || this.volume <= 0) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800 + Math.random() * 120, now);
+      osc.frequency.exponentialRampToValueAtTime(180, now + 0.025);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.28 * this.volume, now + 0.003);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.035);
+    } catch {}
+  }
+
+  /**
+   * Energetic ascending chord when the prize wheel locks on the winning amount
+   */
+  public playPrizeLock(): void {
+    if (this.isMuted || this.volume <= 0) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const lockNotes = [440, 659.25, 880]; // A4, E5, A5 fanfare
+      lockNotes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const start = now + idx * 0.07;
+        const end = start + 0.45;
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, start);
+
+        gain.gain.setValueAtTime(0.001, start);
+        gain.gain.linearRampToValueAtTime(0.25 * this.volume, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, end);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(start);
+        osc.stop(end);
+      });
+    } catch {}
+  }
 }
 
 export const sfx = new SoundEffectsManager();

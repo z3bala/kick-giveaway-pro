@@ -72,6 +72,12 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
       });
     }
 
+    const wheelSegments = settings.wheelAmounts && settings.wheelAmounts.length > 0
+      ? settings.wheelAmounts
+      : ['1$', '2$', '3$', '5$', '10$'];
+    const targetWheelIdx = 2; // e.g. 3$
+    const rolledPrize = wheelSegments[targetWheelIdx] || '3$';
+
     const testData: DrawAnimationData = {
       giveawayId: 'test-gw',
       winner: {
@@ -86,6 +92,11 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
       targetIndex: targetIdx,
       durationSec: settings.animationDurationSec || 7.5,
       startedAt: Date.now(),
+      wheelEnabled: settings.wheelEnabled !== false,
+      wheelSegments,
+      rolledPrize,
+      wheelTargetIndex: targetWheelIdx,
+      wheelDurationSec: 4.2,
     };
 
     setTestDrawData(testData);
@@ -352,7 +363,10 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
             <div className="absolute inset-x-0 bottom-6 flex items-center justify-center pointer-events-auto">
               <WinnerCard
                 winner={sampleWinner}
-                giveaway={sampleGiveaway}
+                giveaway={{
+                  ...sampleGiveaway,
+                  prize: testDrawData?.rolledPrize || sampleGiveaway.prize,
+                }}
                 accentColor={accent}
               />
             </div>
@@ -585,45 +599,58 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
             />
           </div>
 
-          {/* Sound Settings */}
+          {/* Half-Wheel Prize Spin Settings */}
           <div className="pt-3 border-t border-white/[0.08] space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-semibold text-white block">Mechanical Sound Effects</span>
-                <span className="text-[11px] text-neutral-400">Audio ticks during roll and victory fanfare</span>
+                <span className="text-xs font-semibold text-white block">🎡 Half-Wheel Prize Spin</span>
+                <span className="text-[11px] text-neutral-400">
+                  Spins prize amount arc first, then rolls winning user
+                </span>
               </div>
               <button
-                onClick={() => onUpdateSettings({ soundEnabled: !settings.soundEnabled })}
-                className={`p-2 rounded-xl border transition-all ${
-                  settings.soundEnabled
-                    ? 'bg-white/[0.1] text-white border-white/[0.2]'
+                onClick={() => onUpdateSettings({ wheelEnabled: settings.wheelEnabled === false })}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                  settings.wheelEnabled !== false
+                    ? 'bg-[#53fc18]/15 text-[#53fc18] border-[#53fc18]/30'
                     : 'bg-white/[0.04] text-neutral-500 border-white/[0.08]'
                 }`}
-                style={{
-                  color: settings.soundEnabled ? accent : undefined,
-                  borderColor: settings.soundEnabled ? `${accent}40` : undefined,
-                }}
               >
-                {settings.soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                {settings.wheelEnabled !== false ? 'Enabled' : 'Disabled'}
               </button>
             </div>
 
-            {settings.soundEnabled && (
-              <div>
-                <div className="flex items-center justify-between text-xs text-neutral-400 mb-1.5">
-                  <span>Volume</span>
-                  <span className="text-white font-mono">{Math.round((settings.soundVolume || 0.8) * 100)}%</span>
-                </div>
+            {settings.wheelEnabled !== false && (
+              <div className="space-y-2 pt-1 animate-fade-in">
+                <label className="block text-[11px] font-semibold text-neutral-300">
+                  Wheel Prize Amounts (Comma-Separated)
+                </label>
                 <input
-                  type="range"
-                  min="0.1"
-                  max="1"
-                  step="0.05"
-                  value={settings.soundVolume || 0.8}
-                  onChange={(e) => onUpdateSettings({ soundVolume: Number(e.target.value) })}
-                  className="w-full h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer"
-                  style={{ accentColor: accent }}
+                  type="text"
+                  value={(settings.wheelAmounts || ['1$', '2$', '3$', '5$', '10$']).join(', ')}
+                  onChange={(e) => {
+                    const parsed = e.target.value.split(',').map((s) => s.trim()).filter(Boolean);
+                    onUpdateSettings({ wheelAmounts: parsed });
+                  }}
+                  placeholder="1$, 2$, 3$, 5$, 10$"
+                  className="w-full px-3 py-1.5 rounded-lg bg-black/40 border border-white/[0.1] text-xs font-mono text-white focus:outline-none focus:border-[#53fc18]"
                 />
+                <div className="flex items-center space-x-1.5 flex-wrap gap-1 text-[10px]">
+                  <span className="text-neutral-500">Presets:</span>
+                  {[
+                    ['1$', '2$', '3$'],
+                    ['1$', '2$', '3$', '5$', '10$'],
+                    ['5$', '10$', '25$', '50$'],
+                  ].map((preset, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => onUpdateSettings({ wheelAmounts: preset })}
+                      className="px-2 py-0.5 rounded bg-white/[0.06] hover:bg-white/[0.12] text-neutral-300 hover:text-white font-mono"
+                    >
+                      {preset.join(', ')}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>

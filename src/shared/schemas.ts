@@ -8,6 +8,8 @@ export const CreateGiveawaySchema = z.object({
     .min(1, 'Keyword is required')
     .max(30, 'Keyword cannot exceed 30 characters')
     .regex(/^![a-zA-Z0-9_-]+$/, 'Keyword must start with ! and contain only alphanumeric characters, dashes, or underscores'),
+  wheelEnabled: z.boolean().optional(),
+  wheelAmounts: z.array(z.string()).optional(),
 });
 
 export const UpdateKeywordSchema = z.object({
@@ -35,6 +37,8 @@ export const UpdateOverlaySettingsSchema = z.object({
   scale: z.number().min(0.5).max(2).optional(),
   position: z.enum(['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right', 'center']).optional(),
   layoutStyle: z.enum(['pill', 'bar', 'card']).optional(),
+  wheelEnabled: z.boolean().optional(),
+  wheelAmounts: z.array(z.string()).optional(),
 });
 
 export const UpdateAppSettingsSchema = z.object({

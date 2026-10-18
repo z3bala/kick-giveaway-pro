@@ -32,7 +32,13 @@ class ApiClient {
     return res.json();
   }
 
-  public async createGiveaway(data: { title: string; prize: string; keyword: string }): Promise<Giveaway> {
+  public async createGiveaway(data: {
+    title: string;
+    prize: string;
+    keyword: string;
+    wheelEnabled?: boolean;
+    wheelAmounts?: string[];
+  }): Promise<Giveaway> {
     const res = await fetch('/api/giveaway/create', {
       method: 'POST',
       headers: this.getHeaders(),
@@ -40,6 +46,17 @@ class ApiClient {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Failed to create giveaway');
+    return json.giveaway;
+  }
+
+  public async updateGiveawayWheel(wheelEnabled: boolean, wheelAmounts?: string[]): Promise<Giveaway> {
+    const res = await fetch('/api/giveaway/wheel', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ wheelEnabled, wheelAmounts }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to update wheel settings');
     return json.giveaway;
   }
 

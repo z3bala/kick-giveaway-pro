@@ -35,7 +35,11 @@ export const OverlayApp: React.FC = () => {
     if (activeDraw && giveaway) {
       setLocalCompletedWinner({
         winner: activeDraw.winner,
-        giveaway: { ...giveaway, status: 'completed' },
+        giveaway: {
+          ...giveaway,
+          prize: activeDraw.rolledPrize || giveaway.prize,
+          status: 'completed',
+        },
       });
       // Streamer can also trigger auto-reveal from server, or client signals reveal
       api.revealWinner().catch(() => {});

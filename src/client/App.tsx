@@ -73,8 +73,18 @@ export const App: React.FC = () => {
   }, []);
 
   // Action Handlers
-  const handleCreateGiveaway = async (title: string, prize: string, keyword: string) => {
-    await api.createGiveaway({ title, prize, keyword });
+  const handleCreateGiveaway = async (
+    title: string,
+    prize: string,
+    keyword: string,
+    wheelEnabled?: boolean,
+    wheelAmounts?: string[]
+  ) => {
+    await api.createGiveaway({ title, prize, keyword, wheelEnabled, wheelAmounts });
+  };
+
+  const handleUpdateWheel = async (wheelEnabled: boolean, wheelAmounts?: string[]) => {
+    await api.updateGiveawayWheel(wheelEnabled, wheelAmounts);
   };
 
   const handleOpenEntries = async () => {
@@ -213,6 +223,7 @@ export const App: React.FC = () => {
                 participants={participants}
                 overlaySettings={overlaySettings}
                 onCreateGiveaway={handleCreateGiveaway}
+                onUpdateWheel={handleUpdateWheel}
                 onOpenEntries={handleOpenEntries}
                 onCloseEntries={handleCloseEntries}
                 onUpdateKeyword={handleUpdateKeyword}

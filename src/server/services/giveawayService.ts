@@ -152,7 +152,13 @@ export class GiveawayService {
 
   // ---------------- Giveaway Lifecycle Operations ----------------
 
-  public createGiveaway(title: string, prize: string, keyword: string): Giveaway {
+  public createGiveaway(
+    title: string,
+    prize: string,
+    keyword: string,
+    wheelEnabled?: boolean,
+    wheelAmounts?: string[]
+  ): Giveaway {
     const now = new Date().toISOString();
     // Auto-archive any previous active or draft giveaway cleanly
     try {
@@ -174,6 +180,8 @@ export class GiveawayService {
       openedAt: null,
       closedAt: null,
       completedAt: null,
+      wheelEnabled: Boolean(wheelEnabled),
+      wheelAmounts: wheelAmounts && wheelAmounts.length > 0 ? wheelAmounts : undefined,
     });
 
     this.activeGiveaway = newGw;
@@ -420,9 +428,26 @@ export class GiveawayService {
       this.closeGiveaway(this.activeGiveaway.id);
     }
 
+    // Determine if prize wheel is enabled
+    const isWheel = Boolean(this.activeGiveaway.wheelEnabled ?? this.overlaySettings.wheelEnabled);
+    const configuredSegments = (this.activeGiveaway.wheelAmounts && this.activeGiveaway.wheelAmounts.length > 0)
+      ? this.activeGiveaway.wheelAmounts
+      : (this.overlaySettings.wheelAmounts && this.overlaySettings.wheelAmounts.length > 0
+          ? this.overlaySettings.wheelAmounts
+          : ['1$', '2$', '3$', '5$', '10$', '25$']);
+
     // Execute cryptographically unbiased selection
     const duration = this.overlaySettings.animationDurationSec || 7.5;
-    const { winner, drawData } = selectWinnerUniformly(this.activeGiveaway.id, eligible, duration);
+    const { winner, drawData } = selectWinnerUniformly(
+      this.activeGiveaway.id,
+      eligible,
+      duration,
+      {
+        enabled: isWheel,
+        segments: configuredSegments,
+        durationSec: 4.2,
+      }
+    );
 
     this.activeDraw = drawData;
     this.activeGiveaway.status = 'drawing';
@@ -441,8 +466,21 @@ export class GiveawayService {
 
     const winner = this.activeDraw.winner;
     const completedAt = new Date().toISOString();
+    const rolledPrize = this.activeDraw.rolledPrize;
 
-    dbOps.setGiveawayWinner(this.db, this.activeGiveaway.id, winner.id, winner.username, completedAt);
+    if (rolledPrize) {
+      this.activeGiveaway.prize = rolledPrize;
+      this.activeGiveaway.rolledPrize = rolledPrize;
+    }
+
+    dbOps.setGiveawayWinner(
+      this.db,
+      this.activeGiveaway.id,
+      winner.id,
+      winner.username,
+      completedAt,
+      rolledPrize
+    );
     this.activeGiveaway.status = 'completed';
     this.activeGiveaway.winnerId = winner.id;
     this.activeGiveaway.winnerUsername = winner.username;
@@ -459,6 +497,28 @@ export class GiveawayService {
     }
 
     return { winner, giveaway: this.activeGiveaway };
+  }
+
+  public updateGiveawayWheel(giveawayId: string, wheelEnabled: boolean, wheelAmounts?: string[]): Giveaway {
+    if (!this.activeGiveaway || this.activeGiveaway.id !== giveawayId) {
+      throw new Error('Active giveaway not found.');
+    }
+    this.activeGiveaway.wheelEnabled = wheelEnabled;
+    if (wheelAmounts && wheelAmounts.length > 0) {
+      this.activeGiveaway.wheelAmounts = wheelAmounts;
+    }
+    try {
+      this.db.prepare(`UPDATE giveaways SET wheel_enabled = ?, wheel_amounts = ? WHERE id = ?`).run(
+        wheelEnabled ? 1 : 0,
+        this.activeGiveaway.wheelAmounts ? JSON.stringify(this.activeGiveaway.wheelAmounts) : null,
+        giveawayId
+      );
+    } catch (e: any) {
+      console.warn('[GiveawayService] Error saving wheel config:', e.message);
+    }
+
+    this.broadcaster.emitEvent('giveaway.updated', this.activeGiveaway);
+    return this.activeGiveaway;
   }
 
   public resetGiveaway(): void {

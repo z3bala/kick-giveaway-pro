@@ -77,6 +77,10 @@ export function initDatabase(db: DatabaseSync): void {
       is_bot INTEGER NOT NULL DEFAULT 0
     );
   `);
+
+  try { db.exec(`ALTER TABLE giveaways ADD COLUMN wheel_enabled INTEGER DEFAULT 0;`); } catch {}
+  try { db.exec(`ALTER TABLE giveaways ADD COLUMN wheel_amounts TEXT;`); } catch {}
+  try { db.exec(`ALTER TABLE giveaways ADD COLUMN rolled_prize TEXT;`); } catch {}
 }
 
 // ---------------- Database Access Operations ----------------
@@ -103,15 +107,17 @@ export const dbOps = {
 
   createGiveaway(db: DatabaseSync, giveaway: Omit<Giveaway, 'participantCount'>): Giveaway {
     db.prepare(`
-      INSERT INTO giveaways (id, title, prize, keyword, status, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO giveaways (id, title, prize, keyword, status, created_at, wheel_enabled, wheel_amounts)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       giveaway.id,
       giveaway.title,
       giveaway.prize,
       giveaway.keyword,
       giveaway.status,
-      giveaway.createdAt
+      giveaway.createdAt,
+      giveaway.wheelEnabled ? 1 : 0,
+      giveaway.wheelAmounts ? JSON.stringify(giveaway.wheelAmounts) : null
     );
 
     return {
@@ -122,6 +128,7 @@ export const dbOps = {
       openedAt: null,
       closedAt: null,
       completedAt: null,
+      rolledPrize: null,
     };
   },
 
@@ -142,12 +149,31 @@ export const dbOps = {
     }
   },
 
-  setGiveawayWinner(db: DatabaseSync, id: string, winnerId: string, winnerUsername: string, completedAt: string): void {
-    db.prepare(`
-      UPDATE giveaways 
-      SET status = 'completed', winner_id = ?, winner_username = ?, completed_at = ?
-      WHERE id = ?
-    `).run(winnerId, winnerUsername, completedAt, id);
+  updateGiveawayRolledPrize(db: DatabaseSync, id: string, rolledPrize: string): void {
+    db.prepare(`UPDATE giveaways SET rolled_prize = ?, prize = ? WHERE id = ?`).run(rolledPrize, rolledPrize, id);
+  },
+
+  setGiveawayWinner(
+    db: DatabaseSync,
+    id: string,
+    winnerId: string,
+    winnerUsername: string,
+    completedAt: string,
+    rolledPrize?: string
+  ): void {
+    if (rolledPrize) {
+      db.prepare(`
+        UPDATE giveaways 
+        SET status = 'completed', winner_id = ?, winner_username = ?, completed_at = ?, rolled_prize = ?, prize = ?
+        WHERE id = ?
+      `).run(winnerId, winnerUsername, completedAt, rolledPrize, rolledPrize, id);
+    } else {
+      db.prepare(`
+        UPDATE giveaways 
+        SET status = 'completed', winner_id = ?, winner_username = ?, completed_at = ?
+        WHERE id = ?
+      `).run(winnerId, winnerUsername, completedAt, id);
+    }
   },
 
   updateGiveawayKeyword(db: DatabaseSync, id: string, keyword: string): void {
@@ -283,6 +309,13 @@ export const dbOps = {
 };
 
 function mapGiveawayRow(row: any): Giveaway {
+  let wheelAmounts: string[] | undefined = undefined;
+  if (row.wheel_amounts) {
+    try {
+      wheelAmounts = JSON.parse(row.wheel_amounts);
+    } catch {}
+  }
+
   return {
     id: row.id,
     title: row.title,
@@ -296,6 +329,9 @@ function mapGiveawayRow(row: any): Giveaway {
     openedAt: row.opened_at,
     closedAt: row.closed_at,
     completedAt: row.completed_at,
+    wheelEnabled: Boolean(row.wheel_enabled),
+    wheelAmounts,
+    rolledPrize: row.rolled_prize || null,
   };
 }
 

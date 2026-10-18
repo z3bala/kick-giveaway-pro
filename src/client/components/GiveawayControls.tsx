@@ -22,7 +22,14 @@ interface GiveawayControlsProps {
   giveaway: Giveaway | null;
   participants: Participant[];
   overlaySettings: OverlaySettings;
-  onCreateGiveaway: (title: string, prize: string, keyword: string) => Promise<void>;
+  onCreateGiveaway: (
+    title: string,
+    prize: string,
+    keyword: string,
+    wheelEnabled?: boolean,
+    wheelAmounts?: string[]
+  ) => Promise<void>;
+  onUpdateWheel?: (wheelEnabled: boolean, wheelAmounts?: string[]) => Promise<void>;
   onOpenEntries: () => Promise<void>;
   onCloseEntries: () => Promise<void>;
   onUpdateKeyword: (keyword: string) => Promise<void>;
@@ -37,6 +44,7 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
   participants,
   overlaySettings,
   onCreateGiveaway,
+  onUpdateWheel,
   onOpenEntries,
   onCloseEntries,
   onUpdateKeyword,
@@ -45,11 +53,15 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
   onOpenResetConfirmModal,
 }) => {
   const [newTitle, setNewTitle] = useState('Kick Stream Giveaway');
-  const [newPrize, setNewPrize] = useState('$50 Steam Gift Card');
+  const [newPrize, setNewPrize] = useState('$50 Cash / Gift Card');
   const [newKeyword, setNewKeyword] = useState('!join');
+  const [wheelEnabled, setWheelEnabled] = useState(true);
+  const [wheelAmountsInput, setWheelAmountsInput] = useState('1$, 2$, 3$, 5$, 10$');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [customKeyword, setCustomKeyword] = useState('');
   const [isEditingKeyword, setIsEditingKeyword] = useState(false);
+  const [isEditingWheel, setIsEditingWheel] = useState(false);
+  const [activeWheelAmounts, setActiveWheelAmounts] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -59,6 +71,13 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
   const isDrawing = status === 'drawing';
   const isCompleted = status === 'completed';
 
+  const parseAmounts = (input: string): string[] => {
+    return input
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newPrize.trim() || !newKeyword.trim()) return;
@@ -66,7 +85,14 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
     setIsSubmitting(true);
     setFeedback(null);
     try {
-      await onCreateGiveaway(newTitle, newPrize, newKeyword);
+      const parsedWheelAmounts = wheelEnabled ? parseAmounts(wheelAmountsInput) : undefined;
+      await onCreateGiveaway(
+        newTitle,
+        newPrize,
+        newKeyword,
+        wheelEnabled,
+        parsedWheelAmounts && parsedWheelAmounts.length > 0 ? parsedWheelAmounts : undefined
+      );
       try {
         await onOpenEntries();
       } catch {}
@@ -162,13 +188,24 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
                     {status}
                   </span>
                 </div>
-                <div className="flex items-center space-x-3 mt-2 text-xs text-neutral-400">
+                <div className="flex items-center space-x-3 mt-2 text-xs text-neutral-400 flex-wrap gap-y-1">
                   <span className="flex items-center space-x-1">
                     <Gift className="w-3.5 h-3.5 text-amber-400" />
                     <span>Prize: <strong className="text-white font-medium">{giveaway.prize}</strong></span>
                   </span>
                   <span>•</span>
                   <span>Participants: <strong className="text-[#53fc18] font-bold">{giveaway.participantCount}</strong></span>
+                  {giveaway.wheelEnabled && (
+                    <>
+                      <span>•</span>
+                      <span className="flex items-center space-x-1 text-[#53fc18]">
+                        <span>🎡 Wheel:</span>
+                        <strong className="font-mono">
+                          {(giveaway.wheelAmounts || ['1$', '2$', '3$', '5$', '10$']).join(', ')}
+                        </strong>
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -302,7 +339,11 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
                   }`}
                 >
                   <Dice5 className="w-4 h-4" />
-                  <span>Roll CS2 Roulette ({giveaway.participantCount} Viewers)</span>
+                  <span>
+                    {giveaway.wheelEnabled
+                      ? `Spin Wheel & CS2 Roulette (${giveaway.participantCount} Viewers)`
+                      : `Roll CS2 Roulette (${giveaway.participantCount} Viewers)`}
+                  </span>
                 </button>
               )}
 
@@ -440,6 +481,74 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
               <p className="text-[11px] text-neutral-400 mt-1">
                 Viewers enter by typing this keyword into your Kick chat.
               </p>
+            </div>
+
+            {/* Prize Wheel Customization Card */}
+            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2.5">
+                  <span className="text-base">🎡</span>
+                  <div>
+                    <div className="text-xs font-bold text-white">Half-Wheel Prize Spin</div>
+                    <div className="text-[11px] text-neutral-400">
+                      Spins prize amount first, then rolls who wins the rolled amount
+                    </div>
+                  </div>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={wheelEnabled}
+                    onChange={(e) => setWheelEnabled(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-10 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#53fc18]" />
+                </label>
+              </div>
+
+              {wheelEnabled && (
+                <div className="pt-2 border-t border-white/[0.06] space-y-2.5 animate-fade-in">
+                  <label className="block text-xs font-semibold text-neutral-300">
+                    Custom Wheel Amounts (Comma-Separated) *
+                  </label>
+                  <input
+                    type="text"
+                    value={wheelAmountsInput}
+                    onChange={(e) => setWheelAmountsInput(e.target.value)}
+                    placeholder="1$, 2$, 3$, 5$, 10$"
+                    className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/[0.1] text-white font-mono text-xs focus:border-[#53fc18] focus:outline-none transition-colors"
+                  />
+
+                  {/* Quick Preset Buttons */}
+                  <div className="flex items-center space-x-1.5 flex-wrap gap-1 text-[11px]">
+                    <span className="text-neutral-500 font-medium mr-1">Presets:</span>
+                    {['1$, 2$, 3$', '1$, 2$, 3$, 5$, 10$', '5$, 10$, 25$, 50$'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setWheelAmountsInput(preset)}
+                        className="px-2 py-0.5 rounded-md bg-white/[0.06] hover:bg-white/[0.12] text-neutral-300 hover:text-white font-mono transition-colors"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Live Wedge Preview */}
+                  <div className="flex items-center space-x-1.5 flex-wrap gap-1 pt-1">
+                    <span className="text-[10px] uppercase font-bold text-neutral-500">Slices:</span>
+                    {parseAmounts(wheelAmountsInput).map((amt, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 rounded-full bg-[#53fc18]/15 border border-[#53fc18]/30 text-[#53fc18] font-bold text-[11px] font-mono"
+                      >
+                        {amt}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button

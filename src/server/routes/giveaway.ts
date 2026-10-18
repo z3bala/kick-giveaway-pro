@@ -27,9 +27,25 @@ export function createGiveawayRouter(giveawayService: GiveawayService): Router {
         return;
       }
 
-      const { title, prize, keyword } = parsed.data;
-      const giveaway = giveawayService.createGiveaway(title, prize, keyword);
+      const { title, prize, keyword, wheelEnabled, wheelAmounts } = parsed.data;
+      const giveaway = giveawayService.createGiveaway(title, prize, keyword, wheelEnabled, wheelAmounts);
       res.status(201).json({ success: true, giveaway });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  // Update wheel configuration for active giveaway
+  router.post('/wheel', requireAdminAuth, (req, res) => {
+    try {
+      const { wheelEnabled, wheelAmounts } = req.body;
+      const active = giveawayService.getActiveGiveaway();
+      if (!active) {
+        res.status(400).json({ error: 'No active giveaway.' });
+        return;
+      }
+      const updated = giveawayService.updateGiveawayWheel(active.id, Boolean(wheelEnabled), wheelAmounts);
+      res.json({ success: true, giveaway: updated });
     } catch (err: any) {
       res.status(400).json({ error: err.message });
     }
