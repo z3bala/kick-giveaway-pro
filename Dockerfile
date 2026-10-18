@@ -38,4 +38,4 @@ RUN mkdir -p /app/data
 
 EXPOSE 3001
 
-CMD ["node", "dist/server/index.js"]
+CMD ["node", "--experimental-sqlite", "dist/server/index.js"]

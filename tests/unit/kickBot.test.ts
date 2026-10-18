@@ -84,4 +84,72 @@ describe('KickBotService & Event Handling', () => {
     expect(replies[0].content).toContain('@LuckyViewer123');
     expect(replies[0].content).toContain('$50 Steam Card');
   });
+
+  it('sends chat message with type "bot" by default to show [BOT] badge', async () => {
+    const { KickApiClient } = await import('../../src/server/services/kickApi.js');
+    const client = new KickApiClient('mock_id', 'mock_secret', 'mock_access_token');
+
+    let capturedPayload: any = null;
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockImplementation(async (url: any, options: any) => {
+      capturedPayload = JSON.parse(options.body);
+      return new Response(JSON.stringify({ success: true, message: 'Message sent' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as any;
+
+    try {
+      const res = await client.sendChatMessage('29176855', 'Hello from giveaway bot!');
+      expect(res.success).toBe(true);
+      expect(res.typeUsed).toBe('bot');
+      expect(capturedPayload).toEqual({
+        type: 'bot',
+        content: 'Hello from giveaway bot!',
+        broadcaster_user_id: 29176855,
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('retries as bot without broadcaster_user_id if rejected, preserving bot badge', async () => {
+    const { KickApiClient } = await import('../../src/server/services/kickApi.js');
+    const client = new KickApiClient('mock_id', 'mock_secret', 'mock_access_token');
+
+    let callCount = 0;
+    const payloads: any[] = [];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockImplementation(async (url: any, options: any) => {
+      callCount++;
+      const payload = JSON.parse(options.body);
+      payloads.push(payload);
+      if (callCount === 1) {
+        // First attempt with broadcaster_user_id rejected
+        return new Response(JSON.stringify({ error: 'broadcaster_user_id not allowed for bot' }), {
+          status: 422,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      // Second attempt without broadcaster_user_id succeeds
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as any;
+
+    try {
+      const res = await client.sendChatMessage('29176855', 'Test self-bot message');
+      expect(res.success).toBe(true);
+      expect(res.typeUsed).toBe('bot');
+      expect(callCount).toBe(2);
+      expect(payloads[0].type).toBe('bot');
+      expect(payloads[0].broadcaster_user_id).toBe(29176855);
+      expect(payloads[1].type).toBe('bot');
+      expect(payloads[1].broadcaster_user_id).toBeUndefined();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
+

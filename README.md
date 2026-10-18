@@ -26,11 +26,24 @@ Features a real-time streamer dashboard, automated Kick chat message listener, c
 - **Cryptographic Winner Selection Integrity**:
   - Uniform random selection using `crypto.randomInt(0, count)` from Node.js crypto (rejection sampling with **zero modulo bias**).
   - Selected and frozen *before* the animation begins; frontend cannot alter or influence the draw.
+- **Slot Battle Tournament System (`!Pslot`)**:
+  - Live 8-player and 16-player single-elimination slot battle brackets for stream competitions.
+  - Triggered via Kick chat command: `!Pslot [slot name]` (e.g., `!Pslot Gates of Olympus`, `!Pslot Lilith's Curse`).
+  - Strict authorization: only channel broadcaster and moderators can create, reset, or manage tournaments.
+  - Full manual streamer match control: you decide who wins every slot battle directly from the website.
+  - Automatic progression: winners advance to their exact next-round position; losers are eliminated.
+  - Mistake correction: downstream match invalidation protection with confirmation safeguards.
+  - Exact Kick chat announcements:
+    - Tournament start: `🏆 Slot Battle has started!`
+    - Matchup progression: `⚔️ Ahmed vs Mohamed`
+    - Final match: `🏆 FINAL: Ahmed vs Karim`
+    - Champion declaration: `👑 Ahmed wins the Slot Battle!`
+  - Dedicated OBS Studio live tournament overlay (`/overlay/slot-tournament`).
 - **Persistent SQLite Storage**:
-  - Built-in SQLite database storing active giveaways, participants, and complete historical records.
-  - Server restart resilience: previous giveaway records are never overwritten or lost.
+  - Built-in SQLite database storing active giveaways, participants, Guess The Balance events, and Slot Battle tournaments.
+  - Server restart resilience: previous records, bracket matchups, and announcement states are preserved across restarts.
 - **Built-In Chat Simulator & Test Suite**:
-  - Test giveaways offline or before streaming: simulate single or batch viewers entering with `!join`, verify duplicate rejection, and test the OBS overlay.
+  - Test giveaways offline or before streaming: simulate single or batch viewers entering with `!join` or `!Pslot`, verify duplicate rejection, and test the OBS overlay.
 
 ---
 
@@ -165,6 +178,19 @@ Follow these steps to add the giveaway overlay to OBS Studio:
    - ✅ Check **"Refresh browser when scene becomes active"**.
 5. Click **OK**.
 6. The overlay will be completely invisible when idle, and will automatically display when a giveaway is opened, drawing, or won!
+
+### Slot Battle Tournament OBS Overlay
+
+To display the live interactive tournament bracket on stream:
+
+1. In OBS Studio, add a new **Browser** Source named `Slot Battle Overlay`.
+2. Configure settings:
+   - **URL**: `http://localhost:3001/overlay/slot-tournament?token=streamer-obs-overlay-key-2026` *(or your deployment URL)*
+   - **Width**: `1920`
+   - **Height**: `1080`
+   - **FPS**: `60`
+   - **Custom CSS**: Leave empty (includes full transparency and high-contrast esports theme).
+3. The overlay updates in real-time via WebSockets as you select winners in the dashboard—no OBS refresh needed!
 
 ---
 

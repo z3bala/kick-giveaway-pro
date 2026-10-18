@@ -10,6 +10,7 @@ import type {
   StateSyncPayload,
   GtbEvent,
   GtbGuess,
+  SlotTournament,
 } from '../../shared/types.js';
 
 export interface UseSocketOptions {
@@ -48,6 +49,7 @@ export function useSocket(options: UseSocketOptions = {}) {
   const [recentJoined, setRecentJoined] = useState<Participant | null>(null);
   const [gtbEvent, setGtbEvent] = useState<GtbEvent | null>(null);
   const [gtbGuesses, setGtbGuesses] = useState<GtbGuess[]>([]);
+  const [tournament, setTournament] = useState<SlotTournament | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
 
@@ -85,6 +87,9 @@ export function useSocket(options: UseSocketOptions = {}) {
       if (payload.gtb) {
         setGtbEvent(payload.gtb.activeEvent || null);
         setGtbGuesses(payload.gtb.guesses || []);
+      }
+      if (payload.slotTournament) {
+        setTournament(payload.slotTournament.activeTournament || null);
       }
     });
 
@@ -182,6 +187,19 @@ export function useSocket(options: UseSocketOptions = {}) {
       setGtbGuesses([]);
     });
 
+    // Slot Tournament Socket Events
+    socket.on('tournament.created', (tourn: SlotTournament) => {
+      setTournament(tourn);
+    });
+
+    socket.on('tournament.updated', (tourn: SlotTournament | null) => {
+      setTournament(tourn);
+    });
+
+    socket.on('tournament.reset', () => {
+      setTournament(null);
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -202,6 +220,7 @@ export function useSocket(options: UseSocketOptions = {}) {
     recentJoined,
     gtbEvent,
     gtbGuesses,
+    tournament,
     requestSync,
   };
 }

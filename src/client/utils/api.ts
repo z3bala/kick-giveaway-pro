@@ -1,4 +1,4 @@
-import type { Giveaway, Participant, OverlaySettings, AppSettings, StateSyncPayload, GtbEvent, GtbGuess, GtbStatePayload } from '../../shared/types.js';
+import type { Giveaway, Participant, OverlaySettings, AppSettings, StateSyncPayload, GtbEvent, GtbGuess, GtbStatePayload, SlotTournament, SlotTournamentStatePayload } from '../../shared/types.js';
 
 class ApiClient {
   private getHeaders(): HeadersInit {
@@ -282,6 +282,101 @@ class ApiClient {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Failed to submit guess');
+  }
+
+  // ---------------- Slot Battle Tournament Operations ----------------
+  public async getTournamentStatus(): Promise<SlotTournamentStatePayload> {
+    const res = await fetch('/api/tournament/active');
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to fetch tournament state');
+    return json;
+  }
+
+  public async createTournament(data: { slotName: string; size?: 8 | 16 }): Promise<SlotTournament> {
+    const res = await fetch('/api/tournament/create', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to create slot tournament');
+    return json.tournament;
+  }
+
+  public async updateTournamentSize(size: 8 | 16): Promise<SlotTournament> {
+    const res = await fetch('/api/tournament/size', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ size }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to update bracket size');
+    return json.tournament;
+  }
+
+  public async updateTournamentParticipants(participants: string[]): Promise<SlotTournament> {
+    const res = await fetch('/api/tournament/participants', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ participants }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to update participants');
+    return json.tournament;
+  }
+
+  public async shuffleTournamentParticipants(): Promise<SlotTournament> {
+    const res = await fetch('/api/tournament/shuffle', {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to shuffle participants');
+    return json.tournament;
+  }
+
+  public async lockTournamentBracket(): Promise<SlotTournament> {
+    const res = await fetch('/api/tournament/lock', {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to lock bracket');
+    return json.tournament;
+  }
+
+  public async selectMatchWinner(matchId: string, winnerName: string, force?: boolean): Promise<{
+    tournament: SlotTournament;
+    requiresConfirmation?: boolean;
+    affectedMatches?: string[];
+  }> {
+    const res = await fetch('/api/tournament/winner', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ matchId, winnerName, force }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to set match winner');
+    return json;
+  }
+
+  public async announceCurrentMatch(): Promise<any> {
+    const res = await fetch('/api/tournament/announce-current', {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to announce match');
+    return json.match;
+  }
+
+  public async resetTournament(): Promise<void> {
+    const res = await fetch('/api/tournament/reset', {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to reset tournament');
   }
 }
 

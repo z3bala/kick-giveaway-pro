@@ -6,6 +6,7 @@ export interface SendChatMessageResult {
   status?: number;
   error?: string;
   data?: any;
+  typeUsed?: 'bot' | 'user';
 }
 export interface ExchangeAuthCodeResult {
   success: boolean;
@@ -282,64 +283,70 @@ export class KickApiClient {
       const cleanContent = content.slice(0, 500);
       const bId = broadcasterUserId ? Number(broadcasterUserId) : 29176855;
 
-      // Determine sender type based on Kick's official API specifications:
-      // When sending as 'bot', broadcaster_user_id is ignored and Kick routes to the token owner's channel.
-      // Therefore:
-      // - If preferredType is explicitly specified, honor it.
-      // - If the token belongs to the channel owner (bId), send as 'bot' so Kick displays the official [BOT] badge.
-      // - If the token belongs to a separate user (e.g. @FrxGiveaways), send as 'user' with broadcaster_user_id to route to the channel.
-      let primaryType = preferredType;
-      if (!primaryType) {
-        try {
-          const authUser = await this.getAuthenticatedUser();
-          if (authUser && authUser.user_id === bId) {
-            primaryType = 'bot';
-          } else {
-            primaryType = 'user';
-          }
-        } catch {
-          primaryType = 'user';
-        }
-      }
+      // Always default to 'bot' so that Kick displays the official green [BOT] badge!
+      // 'bot' is the official Kick Developer API specification for bot badge display.
+      const targetType: 'bot' | 'user' = preferredType || 'bot';
 
-      const payloadPrimary: Record<string, any> = {
-        type: primaryType,
-        content: cleanContent,
-      };
-      if (primaryType === 'user' || bId) {
-        payloadPrimary.broadcaster_user_id = bId;
-      }
-
-      let res = await fetch(`${this.baseUrl}/public/v1/chat`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(payloadPrimary),
-      });
-
-      // Fallback: If primary type was rejected by Kick, try alternate type
-      if (!res.ok && !preferredType) {
-        const fallbackType = primaryType === 'bot' ? 'user' : 'bot';
-        const payloadFallback = {
-          type: fallbackType,
-          content: cleanContent,
-          broadcaster_user_id: bId,
-        };
-        const resFallback = await fetch(`${this.baseUrl}/public/v1/chat`, {
+      const sendPost = async (bodyObj: Record<string, any>) => {
+        return await fetch(`${this.baseUrl}/public/v1/chat`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${this.accessToken}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-          body: JSON.stringify(payloadFallback),
+          body: JSON.stringify(bodyObj),
         });
-        if (resFallback.ok) {
-          res = resFallback;
+      };
+
+      let res: Response;
+      let typeUsed: 'bot' | 'user' = targetType;
+
+      if (targetType === 'bot') {
+        // Step 1: Send as 'bot' with broadcaster_user_id (Kick developer API format)
+        const payloadBotWithChannel = {
+          type: 'bot',
+          content: cleanContent,
+          broadcaster_user_id: bId,
+        };
+        res = await sendPost(payloadBotWithChannel);
+
+        // Step 2: Fallback for 'bot': If Kick rejected with broadcaster_user_id, try without broadcaster_user_id
+        if (!res.ok) {
+          const payloadBotSelf = {
+            type: 'bot',
+            content: cleanContent,
+          };
+          const resBotSelf = await sendPost(payloadBotSelf);
+          if (resBotSelf.ok) {
+            res = resBotSelf;
+            typeUsed = 'bot';
+          }
         }
+
+        // Step 3: Fallback to 'user' ONLY if 'bot' type was completely rejected by Kick API (and user didn't explicitly force 'bot')
+        if (!res.ok && !preferredType) {
+          console.warn(`[KickApiClient] Kick API rejected 'bot' type (${res.status}), attempting fallback to 'user' type...`);
+          const payloadUser = {
+            type: 'user',
+            content: cleanContent,
+            broadcaster_user_id: bId,
+          };
+          const resUser = await sendPost(payloadUser);
+          if (resUser.ok) {
+            res = resUser;
+            typeUsed = 'user';
+          }
+        }
+      } else {
+        // Explicitly requested 'user' mode
+        const payloadUser = {
+          type: 'user',
+          content: cleanContent,
+          broadcaster_user_id: bId,
+        };
+        res = await sendPost(payloadUser);
+        typeUsed = 'user';
       }
 
       const resText = await res.text();
@@ -354,11 +361,11 @@ export class KickApiClient {
         } else {
           console.error(`[KickApiClient] Send message failed (${res.status}): ${resText}`);
         }
-        return { success: false, status: res.status, error: errorMsg, data: resJson };
+        return { success: false, status: res.status, error: errorMsg, data: resJson, typeUsed };
       }
 
-      console.log(`[KickApiClient] Successfully sent chat message to broadcaster ${bId} (type: ${primaryType}): "${cleanContent.slice(0, 60)}..."`);
-      return { success: true, status: res.status, data: resJson };
+      console.log(`[KickApiClient] Successfully sent chat message to broadcaster ${bId} (type: ${typeUsed}): "${cleanContent.slice(0, 60)}..."`);
+      return { success: true, status: res.status, data: resJson, typeUsed };
     } catch (err: any) {
       console.error('[KickApiClient] Network error sending chat message:', err.message);
       return { success: false, error: err.message };

@@ -83,3 +83,23 @@ export const ManualGtbGuessSchema = z.object({
   guess: z.number().min(0, 'Guess must be non-negative'),
 });
 
+export const CreateSlotTournamentSchema = z.object({
+  slotName: z.string().min(1, 'Slot name is required').max(100, 'Slot name cannot exceed 100 characters'),
+  size: z.union([z.literal(8), z.literal(16)]).optional(),
+});
+
+export const UpdateTournamentSizeSchema = z.object({
+  size: z.union([z.literal(8), z.literal(16)]),
+});
+
+export const UpdateParticipantsSchema = z.object({
+  participants: z.array(z.string().min(1, 'Participant name cannot be blank')),
+});
+
+export const SelectWinnerSchema = z.object({
+  matchId: z.string().min(1, 'Match ID is required'),
+  winnerName: z.string().min(1, 'Winner name is required'),
+  force: z.boolean().optional(),
+});
+
+

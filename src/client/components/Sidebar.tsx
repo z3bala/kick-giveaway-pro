@@ -14,6 +14,8 @@ import {
   Lock,
   Unlock,
   Coins,
+  Swords,
+  Trophy,
 } from 'lucide-react';
 
 export type TabType =
@@ -21,6 +23,7 @@ export type TabType =
   | 'controls'
   | 'participants'
   | 'gtb'
+  | 'slot-battle'
   | 'overlay'
   | 'simulator'
   | 'history'
@@ -33,6 +36,7 @@ interface SidebarProps {
   giveawayStatus?: string;
   gtbStatus?: string;
   gtbGuessCount?: number;
+  tournamentStatus?: string;
   kickChannelSlug?: string;
   isKickConnected?: boolean;
   overlayToken?: string;
@@ -48,6 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   giveawayStatus = 'draft',
   gtbStatus = 'idle',
   gtbGuessCount = 0,
+  tournamentStatus = 'idle',
   kickChannelSlug = '',
   isKickConnected = false,
   overlayToken = '',
@@ -109,6 +114,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ? 'bg-[#53fc18]/20 text-[#53fc18] border border-[#53fc18]/40'
           : gtbStatus === 'resolved'
           ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+          : 'bg-white/10 text-white/70',
+    },
+    {
+      id: 'slot-battle' as TabType,
+      label: 'Slot Battle',
+      icon: Swords,
+      badge:
+        tournamentStatus === 'in_progress'
+          ? 'Live'
+          : tournamentStatus === 'setup'
+          ? 'Setup'
+          : tournamentStatus === 'completed'
+          ? 'Winner'
+          : null,
+      badgeColor:
+        tournamentStatus === 'in_progress'
+          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+          : tournamentStatus === 'completed'
+          ? 'bg-[#53fc18]/20 text-[#53fc18] border border-[#53fc18]/40'
           : 'bg-white/10 text-white/70',
     },
     {

@@ -15,6 +15,8 @@ import { createKickRouter } from './routes/kick.js';
 import { createSettingsRouter } from './routes/settings.js';
 import { GtbService } from './services/gtbService.js';
 import { createGtbRouter } from './routes/gtb.js';
+import { SlotTournamentService } from './services/slotTournamentService.js';
+import { createSlotTournamentRouter } from './routes/slotTournament.js';
 
 // Load environment variables
 dotenv.config();
@@ -67,18 +69,26 @@ export function createApp() {
     emitEvent: (event: string, data: any) => socketManager.broadcast(event, data),
   });
 
-  // Forward incoming chat messages to GTB service
+  // Initialize Slot Battle Tournament Service
+  const slotTournamentService = new SlotTournamentService(db, kickBot, {
+    emitEvent: (event: string, data: any) => socketManager.broadcast(event, data),
+  });
+
+  // Forward incoming chat messages to GTB and Slot Tournament services
   kickBot.on('chatMessage', (msg) => {
     gtbService.handleChatMessage(msg);
+    slotTournamentService.handleChatMessage(msg);
   });
 
   // Link Services with SocketManager for on-connect sync
   socketManager.setGiveawayService(giveawayService);
   socketManager.setGtbService(gtbService);
+  socketManager.setSlotTournamentService(slotTournamentService);
 
   // Mount API Routers
   app.use('/api/giveaway', createGiveawayRouter(giveawayService));
   app.use('/api/gtb', createGtbRouter(gtbService));
+  app.use('/api/tournament', createSlotTournamentRouter(slotTournamentService));
   app.use('/api/kick', createKickRouter(kickBot, giveawayService));
   app.use('/api/settings', createSettingsRouter(giveawayService));
 
@@ -90,6 +100,7 @@ export function createApp() {
       timestamp: new Date().toISOString(),
       kick: kickBot.getState().status,
       activeGiveaway: giveawayService.getActiveGiveaway()?.status || 'idle',
+      activeTournament: slotTournamentService.getActiveTournament()?.status || 'idle',
     });
   });
 
@@ -105,7 +116,7 @@ export function createApp() {
     });
   }
 
-  return { app, server, db, kickBot, giveawayService, socketManager };
+  return { app, server, db, kickBot, giveawayService, gtbService, slotTournamentService, socketManager };
 }
 
 // Start server if this is the entry script

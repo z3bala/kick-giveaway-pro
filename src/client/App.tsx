@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSocket } from './hooks/useSocket.js';
 import { api } from './utils/api.js';
 import { OverlayApp } from './overlay/OverlayApp.js';
+import { SlotTournamentOverlay } from './overlay/SlotTournamentOverlay.js';
 import { Sidebar, type TabType } from './components/Sidebar.js';
 import { Header } from './components/Header.js';
 import { Overview } from './components/Overview.js';
@@ -12,13 +13,16 @@ import { ChatSimulator } from './components/ChatSimulator.js';
 import { GiveawayHistory } from './components/GiveawayHistory.js';
 import { SettingsView } from './components/SettingsView.js';
 import { GuessTheBalance } from './components/GuessTheBalance.js';
+import { SlotBattle } from './components/SlotBattle.js';
 import { ConfirmModal, ManualAddModal, AdminAuthModal } from './components/Modals.js';
 import type { Participant, AppSettings } from '../shared/types.js';
 
 export const App: React.FC = () => {
-  // Check if current route is the standalone OBS overlay
-  const isOverlayRoute = window.location.pathname.startsWith('/overlay');
-  if (isOverlayRoute) {
+  // Check if current route is a standalone OBS overlay
+  if (window.location.pathname.startsWith('/overlay/slot-tournament')) {
+    return <SlotTournamentOverlay />;
+  }
+  if (window.location.pathname.startsWith('/overlay')) {
     return <OverlayApp />;
   }
 
@@ -33,6 +37,7 @@ export const App: React.FC = () => {
     history,
     gtbEvent,
     gtbGuesses,
+    tournament,
   } = useSocket({ clientType: 'dashboard' });
 
   const [currentTab, setCurrentTab] = useState<TabType>('overview');
@@ -190,6 +195,7 @@ export const App: React.FC = () => {
     controls: 'Giveaway Controls',
     participants: 'Participants Pool',
     gtb: 'Guess The Balance (Stake.com)',
+    'slot-battle': 'Slot Battle Tournament',
     overlay: 'OBS Overlay Studio',
     simulator: 'Chat Simulator',
     history: 'History & Winners',
@@ -206,6 +212,7 @@ export const App: React.FC = () => {
         giveawayStatus={giveaway?.status}
         gtbStatus={gtbEvent?.status}
         gtbGuessCount={gtbGuesses.length}
+        tournamentStatus={tournament?.status}
         kickChannelSlug={kickBot.channelSlug || appSettings.kickChannelSlug}
         isKickConnected={kickBot.status === 'connected'}
         overlayToken={appSettings.overlayToken}
@@ -281,6 +288,15 @@ export const App: React.FC = () => {
                 onResetEvent={handleResetGtb}
                 onManualGuess={handleManualGtb}
                 accentColor={overlaySettings.accentColor}
+              />
+            )}
+
+            {currentTab === 'slot-battle' && (
+              <SlotBattle
+                tournament={tournament}
+                overlayToken={appSettings.overlayToken}
+                onOpenAuthModal={() => setIsAuthModalOpen(true)}
+                isAdminAuthenticated={!!adminSecret}
               />
             )}
 

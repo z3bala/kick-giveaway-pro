@@ -104,6 +104,7 @@ export interface StateSyncPayload {
   activeDraw: DrawAnimationData | null;
   recentHistory: Giveaway[];
   gtb?: GtbStatePayload;
+  slotTournament?: SlotTournamentStatePayload;
 }
 
 export interface ChatMessage {
@@ -150,4 +151,48 @@ export interface GtbStatePayload {
   guesses: GtbGuess[];
   recentEvents: GtbEvent[];
 }
+
+// ---------------- Slot Battle Tournament System Types ----------------
+export type SlotTournamentStatus = 'setup' | 'ready' | 'in_progress' | 'completed' | 'cancelled';
+export type SlotMatchStatus = 'waiting' | 'ready' | 'completed';
+
+export interface SlotMatch {
+  id: string;
+  tournamentId: string;
+  roundIndex: number;
+  roundName: string;
+  matchIndex: number;
+  player1Name: string | null;
+  player2Name: string | null;
+  winnerName: string | null;
+  status: SlotMatchStatus;
+  nextMatchId: string | null;
+  nextMatchSlot: 1 | 2 | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SlotTournament {
+  id: string;
+  slotName: string;
+  size: 8 | 16;
+  status: SlotTournamentStatus;
+  champion: string | null;
+  participants: string[];
+  matches: SlotMatch[];
+  currentMatchId: string | null;
+  announcedMatches: string[];
+  startAnnounced: boolean;
+  finalAnnounced: boolean;
+  championAnnounced: boolean;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+export interface SlotTournamentStatePayload {
+  activeTournament: SlotTournament | null;
+  recentTournaments: SlotTournament[];
+}
+
 

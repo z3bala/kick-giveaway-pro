@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import type { Giveaway, Participant, OverlaySettings, AppSettings, GtbEvent, GtbGuess, GtbStatus } from '../shared/types.js';
+import type { Giveaway, Participant, OverlaySettings, AppSettings, GtbEvent, GtbGuess, GtbStatus, SlotTournament, SlotMatch, SlotTournamentStatus, SlotMatchStatus } from '../shared/types.js';
 
 let dbInstance: DatabaseSync | null = null;
 
@@ -106,6 +106,42 @@ export function initDatabase(db: DatabaseSync): void {
 
     CREATE INDEX IF NOT EXISTS idx_gtb_guesses_event
       ON gtb_guesses (event_id);
+
+    CREATE TABLE IF NOT EXISTS slot_tournaments (
+      id TEXT PRIMARY KEY,
+      slot_name TEXT NOT NULL,
+      size INTEGER NOT NULL DEFAULT 8,
+      status TEXT NOT NULL DEFAULT 'setup',
+      champion TEXT,
+      participants TEXT NOT NULL DEFAULT '[]',
+      current_match_id TEXT,
+      announced_matches TEXT NOT NULL DEFAULT '[]',
+      start_announced INTEGER NOT NULL DEFAULT 0,
+      final_announced INTEGER NOT NULL DEFAULT 0,
+      champion_announced INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      completed_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS slot_tournament_matches (
+      id TEXT PRIMARY KEY,
+      tournament_id TEXT NOT NULL,
+      round_index INTEGER NOT NULL,
+      round_name TEXT NOT NULL,
+      match_index INTEGER NOT NULL,
+      player1_name TEXT,
+      player2_name TEXT,
+      winner_name TEXT,
+      status TEXT NOT NULL DEFAULT 'waiting',
+      next_match_id TEXT,
+      next_match_slot INTEGER,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_st_matches_tourn 
+      ON slot_tournament_matches (tournament_id, round_index, match_index);
   `);
 
   try { db.exec(`ALTER TABLE giveaways ADD COLUMN wheel_enabled INTEGER DEFAULT 0;`); } catch {}
@@ -483,6 +519,169 @@ export const dbOps = {
     `).all(limit) as any[];
 
     return rows.map(mapGtbEventRow);
+  },
+
+  // ---------------- Slot Battle Tournament Operations ----------------
+  getActiveSlotTournament(db: DatabaseSync): SlotTournament | null {
+    const row = db.prepare(`
+      SELECT * FROM slot_tournaments
+      WHERE status IN ('setup', 'ready', 'in_progress')
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get() as any;
+    if (!row) return null;
+    const matches = this.getSlotMatches(db, row.id);
+    return mapSlotTournamentRow(row, matches);
+  },
+
+  getLatestSlotTournament(db: DatabaseSync): SlotTournament | null {
+    const row = db.prepare(`
+      SELECT * FROM slot_tournaments
+      ORDER BY created_at DESC
+      LIMIT 1
+    `).get() as any;
+    if (!row) return null;
+    const matches = this.getSlotMatches(db, row.id);
+    return mapSlotTournamentRow(row, matches);
+  },
+
+  getSlotTournamentById(db: DatabaseSync, id: string): SlotTournament | null {
+    const row = db.prepare(`SELECT * FROM slot_tournaments WHERE id = ?`).get(id) as any;
+    if (!row) return null;
+    const matches = this.getSlotMatches(db, row.id);
+    return mapSlotTournamentRow(row, matches);
+  },
+
+  getSlotMatches(db: DatabaseSync, tournamentId: string): SlotMatch[] {
+    const rows = db.prepare(`
+      SELECT * FROM slot_tournament_matches
+      WHERE tournament_id = ?
+      ORDER BY round_index ASC, match_index ASC
+    `).all(tournamentId) as any[];
+    return rows.map(mapSlotMatchRow);
+  },
+
+  createSlotTournament(db: DatabaseSync, tournament: SlotTournament): SlotTournament {
+    db.prepare(`
+      INSERT INTO slot_tournaments (
+        id, slot_name, size, status, champion, participants, current_match_id,
+        announced_matches, start_announced, final_announced, champion_announced,
+        created_at, updated_at, completed_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      tournament.id,
+      tournament.slotName,
+      tournament.size,
+      tournament.status,
+      tournament.champion,
+      JSON.stringify(tournament.participants || []),
+      tournament.currentMatchId,
+      JSON.stringify(tournament.announcedMatches || []),
+      tournament.startAnnounced ? 1 : 0,
+      tournament.finalAnnounced ? 1 : 0,
+      tournament.championAnnounced ? 1 : 0,
+      tournament.createdAt,
+      tournament.updatedAt,
+      tournament.completedAt
+    );
+
+    this.saveSlotMatches(db, tournament.id, tournament.matches);
+    return tournament;
+  },
+
+  saveSlotMatches(db: DatabaseSync, tournamentId: string, matches: SlotMatch[]): void {
+    db.prepare(`DELETE FROM slot_tournament_matches WHERE tournament_id = ?`).run(tournamentId);
+
+    const insertStmt = db.prepare(`
+      INSERT INTO slot_tournament_matches (
+        id, tournament_id, round_index, round_name, match_index,
+        player1_name, player2_name, winner_name, status,
+        next_match_id, next_match_slot, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const m of matches) {
+      insertStmt.run(
+        m.id,
+        tournamentId,
+        m.roundIndex,
+        m.roundName,
+        m.matchIndex,
+        m.player1Name,
+        m.player2Name,
+        m.winnerName,
+        m.status,
+        m.nextMatchId,
+        m.nextMatchSlot,
+        m.createdAt,
+        m.updatedAt
+      );
+    }
+  },
+
+  updateSlotTournament(db: DatabaseSync, tournament: SlotTournament): void {
+    db.prepare(`
+      UPDATE slot_tournaments SET
+        slot_name = ?,
+        size = ?,
+        status = ?,
+        champion = ?,
+        participants = ?,
+        current_match_id = ?,
+        announced_matches = ?,
+        start_announced = ?,
+        final_announced = ?,
+        champion_announced = ?,
+        updated_at = ?,
+        completed_at = ?
+      WHERE id = ?
+    `).run(
+      tournament.slotName,
+      tournament.size,
+      tournament.status,
+      tournament.champion,
+      JSON.stringify(tournament.participants || []),
+      tournament.currentMatchId,
+      JSON.stringify(tournament.announcedMatches || []),
+      tournament.startAnnounced ? 1 : 0,
+      tournament.finalAnnounced ? 1 : 0,
+      tournament.championAnnounced ? 1 : 0,
+      tournament.updatedAt,
+      tournament.completedAt,
+      tournament.id
+    );
+  },
+
+  updateSlotMatch(db: DatabaseSync, match: SlotMatch): void {
+    db.prepare(`
+      UPDATE slot_tournament_matches SET
+        player1_name = ?,
+        player2_name = ?,
+        winner_name = ?,
+        status = ?,
+        updated_at = ?
+      WHERE id = ?
+    `).run(
+      match.player1Name,
+      match.player2Name,
+      match.winnerName,
+      match.status,
+      match.updatedAt,
+      match.id
+    );
+  },
+
+  getRecentSlotTournaments(db: DatabaseSync, limit = 10): SlotTournament[] {
+    const rows = db.prepare(`
+      SELECT * FROM slot_tournaments
+      ORDER BY created_at DESC
+      LIMIT ?
+    `).all(limit) as any[];
+
+    return rows.map((row) => {
+      const matches = this.getSlotMatches(db, row.id);
+      return mapSlotTournamentRow(row, matches);
+    });
   }
 };
 
@@ -554,3 +753,52 @@ function mapGtbGuessRow(row: any): GtbGuess {
     updatedAt: row.updated_at,
   };
 }
+
+function mapSlotTournamentRow(row: any, matches: SlotMatch[] = []): SlotTournament {
+  let participants: string[] = [];
+  try {
+    participants = JSON.parse(row.participants || '[]');
+  } catch {}
+
+  let announcedMatches: string[] = [];
+  try {
+    announcedMatches = JSON.parse(row.announced_matches || '[]');
+  } catch {}
+
+  return {
+    id: row.id,
+    slotName: row.slot_name,
+    size: Number(row.size) === 16 ? 16 : 8,
+    status: row.status as SlotTournamentStatus,
+    champion: row.champion || null,
+    participants,
+    matches,
+    currentMatchId: row.current_match_id || null,
+    announcedMatches,
+    startAnnounced: Boolean(row.start_announced),
+    finalAnnounced: Boolean(row.final_announced),
+    championAnnounced: Boolean(row.champion_announced),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    completedAt: row.completed_at || null,
+  };
+}
+
+function mapSlotMatchRow(row: any): SlotMatch {
+  return {
+    id: row.id,
+    tournamentId: row.tournament_id,
+    roundIndex: Number(row.round_index),
+    roundName: row.round_name,
+    matchIndex: Number(row.match_index),
+    player1Name: row.player1_name || null,
+    player2Name: row.player2_name || null,
+    winnerName: row.winner_name || null,
+    status: row.status as SlotMatchStatus,
+    nextMatchId: row.next_match_id || null,
+    nextMatchSlot: row.next_match_slot ? (Number(row.next_match_slot) as 1 | 2) : null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+

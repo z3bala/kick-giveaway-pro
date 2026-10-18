@@ -2,11 +2,13 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import type { Server as HTTPServer } from 'node:http';
 import type { GiveawayService } from '../services/giveawayService.js';
 import type { GtbService } from '../services/gtbService.js';
+import type { SlotTournamentService } from '../services/slotTournamentService.js';
 
 export class SocketManager {
   private io: SocketIOServer;
   private giveawayService: GiveawayService | null = null;
   private gtbService: GtbService | null = null;
+  private slotTournamentService: SlotTournamentService | null = null;
 
   constructor(server: HTTPServer) {
     this.io = new SocketIOServer(server, {
@@ -27,6 +29,10 @@ export class SocketManager {
     this.gtbService = service;
   }
 
+  public setSlotTournamentService(service: SlotTournamentService): void {
+    this.slotTournamentService = service;
+  }
+
   private setupListeners(): void {
     this.io.on('connection', (socket: Socket) => {
       const clientType = socket.handshake.query.type || 'dashboard';
@@ -36,7 +42,8 @@ export class SocketManager {
       if (this.giveawayService) {
         const state = this.giveawayService.getStateSnapshot();
         const gtb = this.gtbService ? this.gtbService.getStateSnapshot() : undefined;
-        socket.emit('state.sync', { ...state, gtb });
+        const slotTournament = this.slotTournamentService ? this.slotTournamentService.getStateSnapshot() : undefined;
+        socket.emit('state.sync', { ...state, gtb, slotTournament });
       }
 
       // Handle client requesting a manual sync
@@ -44,7 +51,8 @@ export class SocketManager {
         if (this.giveawayService) {
           const state = this.giveawayService.getStateSnapshot();
           const gtb = this.gtbService ? this.gtbService.getStateSnapshot() : undefined;
-          socket.emit('state.sync', { ...state, gtb });
+          const slotTournament = this.slotTournamentService ? this.slotTournamentService.getStateSnapshot() : undefined;
+          socket.emit('state.sync', { ...state, gtb, slotTournament });
         }
       });
 

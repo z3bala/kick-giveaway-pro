@@ -35,7 +35,7 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
       tokenOwner: authUser?.name || null,
       tokenOwnerId: authUser?.user_id || null,
       isBroadcasterToken: !!isBroadcasterToken,
-      botBadgeActive: !!isBroadcasterToken,
+      botBadgeActive: !!token,
       chatroom: channelInfo ? {
         followersMode: channelInfo.followers_mode,
         followingMinDuration: channelInfo.following_min_duration,
@@ -294,12 +294,16 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
       }
 
       const { username, message, userId } = parsed.data;
+      const isOwner = username.toLowerCase() === (kickBot.getState().channelSlug || '').toLowerCase();
       const inboundMsg: InboundChatMessage = {
         id: `sim-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         userId: userId || `user-${username.toLowerCase()}`,
         username,
         content: message,
         timestamp: new Date().toISOString(),
+        isBroadcaster: isOwner,
+        isModerator: isOwner,
+        badges: isOwner ? ['broadcaster'] : [],
       };
 
       // Feed into the bot
@@ -343,6 +347,12 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
         const username = sender.username || payload.username || body.username || 'kick_viewer';
         const rawUserId = sender.user_id || sender.id || payload.user_id || body.user_id;
         const userId = rawUserId ? String(rawUserId) : `user_${String(username).toLowerCase().replace(/[^a-z0-9_]/g, '') || Date.now()}`;
+        const rawBadges = sender.identity?.badges || sender.badges || [];
+        const badges = Array.isArray(rawBadges)
+          ? rawBadges.map((b: any) => String(b.type || b.text || b))
+          : [];
+        const isBroadcaster = sender.identity?.badges?.some((b: any) => b.type === 'broadcaster') || badges.some((b) => b.toLowerCase().includes('broadcaster')) || username.toLowerCase() === (kickBot.getState().channelSlug || '').toLowerCase();
+        const isModerator = sender.identity?.badges?.some((b: any) => b.type === 'moderator') || badges.some((b) => b.toLowerCase().includes('moderator') || b.toLowerCase().includes('mod'));
 
         const inboundMsg: InboundChatMessage = {
           id: String(payload.message_id || payload.id || body.message_id || body.id || `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`),
@@ -350,6 +360,9 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
           username,
           content,
           timestamp: payload.created_at || body.created_at || new Date().toISOString(),
+          badges,
+          isBroadcaster,
+          isModerator,
         };
 
         console.log(`[KickWebhook] Chat message from @${username}: "${content}"`);
