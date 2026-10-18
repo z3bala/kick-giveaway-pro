@@ -349,14 +349,12 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
               </div>
             </div>
           ) : testMode === 'winner' ? (
-            <div className="absolute inset-0 flex items-center justify-center p-4 bg-black/40 backdrop-blur-[2px]">
-              <div className="w-full max-w-md">
-                <WinnerCard
-                  winner={sampleWinner}
-                  giveaway={sampleGiveaway}
-                  accentColor={accent}
-                />
-              </div>
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-auto">
+              <WinnerCard
+                winner={sampleWinner}
+                giveaway={sampleGiveaway}
+                accentColor={accent}
+              />
             </div>
           ) : (
             <div className={`absolute ${previewPosClass} flex pointer-events-none`}>

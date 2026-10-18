@@ -129,21 +129,19 @@ export const OverlayApp: React.FC = () => {
           </div>
         </div>
       ) : giveaway && giveaway.status === 'completed' && localCompletedWinner ? (
-        /* State 2: Winner Card Celebration (Centered with celebration confetti) */
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-[2px] animate-fade-in pointer-events-auto">
-          <div
-            className="w-full max-w-xl animate-scale-in"
-            style={{
-              transform: `scale(${scale})`,
-              transformOrigin: 'center center',
-            }}
-          >
-            <WinnerCard
-              winner={localCompletedWinner.winner}
-              giveaway={localCompletedWinner.giveaway}
-              accentColor={overlaySettings.accentColor}
-            />
-          </div>
+        /* State 2: Minimalist Streamer Winner Banner (Floating horizontal lower-third, zero game obstruction) */
+        <div
+          className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 pointer-events-auto animate-fade-in"
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: 'bottom center',
+          }}
+        >
+          <WinnerCard
+            winner={localCompletedWinner.winner}
+            giveaway={localCompletedWinner.giveaway}
+            accentColor={overlaySettings.accentColor}
+          />
         </div>
       ) : giveaway && (giveaway.status === 'open' || giveaway.status === 'closed') ? (
         /* State 3: Giveaway Live/Closed Badge (Arranged at Streamer's chosen screen position) */
