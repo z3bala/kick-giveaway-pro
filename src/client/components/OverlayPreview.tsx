@@ -62,29 +62,31 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
 
     const cards = [];
     const targetIdx = 48;
+    const randomWinner = sampleNames[Math.floor(Math.random() * sampleNames.length)];
     for (let i = 0; i < 60; i++) {
       const name = sampleNames[i % sampleNames.length];
       cards.push({
         id: `test-card-${i}`,
-        username: i === targetIdx ? 'LootMaster' : name,
+        username: i === targetIdx ? randomWinner : name,
         isWinner: i === targetIdx,
-        avatarSeed: i * 37,
+        avatarSeed: i * 37 + 13,
       });
     }
 
     const wheelSegments = settings.wheelAmounts && settings.wheelAmounts.length > 0
       ? settings.wheelAmounts
       : ['1$', '2$', '3$', '5$', '10$'];
-    const targetWheelIdx = 2; // e.g. 3$
-    const rolledPrize = wheelSegments[targetWheelIdx] || '3$';
+    // Randomly select a prize segment for each test spin
+    const targetWheelIdx = Math.floor(Math.random() * wheelSegments.length);
+    const rolledPrize = wheelSegments[targetWheelIdx] || wheelSegments[0];
 
     const testData: DrawAnimationData = {
       giveawayId: 'test-gw',
       winner: {
-        id: 'test-winner-1',
+        id: `test-winner-${Date.now()}`,
         giveawayId: 'test-gw',
         kickUserId: 'test-user',
-        username: 'LootMaster',
+        username: randomWinner,
         joinedAt: new Date().toISOString(),
         status: 'active',
       },
