@@ -62,6 +62,9 @@ export class GiveawayService {
       minAccountAgeDays: 0,
       overlayToken: process.env.OVERLAY_TOKEN || 'streamer-obs-overlay-key-2026',
       adminProtected: !!process.env.ADMIN_SECRET,
+      botWinnerTemplate: '🎉 CONGRATULATIONS @{winner}! You won the giveaway for "{prize}"! 🏆 Contact the streamer to claim your prize!',
+      botOpenedTemplate: '📢 GIVEAWAY STARTED: "{title}"! Prize: {prize}. Type {keyword} in chat to enter!',
+      botClosedTemplate: '🛑 GIVEAWAY ENTRIES CLOSED: Entries for "{title}" are now locked ({count} participants). Rolling the winner on stream now!',
     });
 
     // Load persisted secrets from SQLite so they survive restarts
@@ -518,6 +521,9 @@ export class GiveawayService {
       accessToken: process.env.KICK_ACCESS_TOKEN,
       clientId: this.appSettings.kickClientId,
       clientSecret: process.env.KICK_CLIENT_SECRET,
+      botWinnerTemplate: this.appSettings.botWinnerTemplate,
+      botOpenedTemplate: this.appSettings.botOpenedTemplate,
+      botClosedTemplate: this.appSettings.botClosedTemplate,
     });
 
     this.broadcaster.emitEvent('app.settings.updated', this.appSettings);

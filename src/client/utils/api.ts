@@ -162,6 +162,17 @@ class ApiClient {
     return json;
   }
 
+  public async sendCustomChatMessage(message: string, type: 'bot' | 'user' = 'bot'): Promise<any> {
+    const res = await fetch('/api/kick/test-chat', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ message, type }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to send message to Kick chat');
+    return json;
+  }
+
   public async updateOverlaySettings(settings: Partial<OverlaySettings>): Promise<OverlaySettings> {
     const res = await fetch('/api/settings/overlay', {
       method: 'POST',

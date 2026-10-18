@@ -13,6 +13,7 @@ import {
   Check,
   Lock,
   Loader2,
+  Send,
 } from 'lucide-react';
 import type { AppSettings, KickBotState } from '../../shared/types.js';
 
@@ -53,6 +54,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [isTestingChat, setIsTestingChat] = useState(false);
   const [testChatFeedback, setTestChatFeedback] = useState<{ type: 'success' | 'error' | 'warning'; message: string; details?: string } | null>(null);
+
+  // Custom chat message states
+  const [customChatMessage, setCustomChatMessage] = useState('');
+  const [customMessageType, setCustomMessageType] = useState<'bot' | 'user'>('bot');
+  const [isSendingCustom, setIsSendingCustom] = useState(false);
+  const [customMessageFeedback, setCustomMessageFeedback] = useState<{ type: 'success' | 'error' | 'warning'; message: string; details?: string } | null>(null);
+
+  // Automated bot message templates
+  const [botWinnerTemplate, setBotWinnerTemplate] = useState(
+    appSettings.botWinnerTemplate || '🎉 CONGRATULATIONS @{winner}! You won the giveaway for "{prize}"! 🏆 Contact the streamer to claim your prize!'
+  );
+  const [botOpenedTemplate, setBotOpenedTemplate] = useState(
+    appSettings.botOpenedTemplate || '📢 GIVEAWAY STARTED: "{title}"! Prize: {prize}. Type {keyword} in chat to enter!'
+  );
+  const [botClosedTemplate, setBotClosedTemplate] = useState(
+    appSettings.botClosedTemplate || '🛑 GIVEAWAY ENTRIES CLOSED: Entries for "{title}" are now locked ({count} participants). Rolling the winner on stream now!'
+  );
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -111,6 +129,56 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       });
     } finally {
       setIsTestingChat(false);
+    }
+  };
+
+  const handleSendCustomMessage = async () => {
+    const cleanContent = customChatMessage.trim();
+    if (!cleanContent) {
+      setCustomMessageFeedback({
+        type: 'error',
+        message: 'Please write a message before sending to chat.',
+      });
+      return;
+    }
+
+    setIsSendingCustom(true);
+    setCustomMessageFeedback(null);
+    try {
+      const res = await fetch('/api/kick/test-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Referer': window.location.href,
+        },
+        body: JSON.stringify({
+          type: customMessageType,
+          message: cleanContent,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const warning = data.chatroomDetails?.warning;
+        setCustomMessageFeedback({
+          type: warning ? 'warning' : 'success',
+          message: `✅ Message sent to @${data.channelSlug || channelSlug || 'frixen1'} chat as "${customMessageType}"!`,
+          details: warning || `Delivered to chatroom: "${cleanContent}"`,
+        });
+        setCustomChatMessage('');
+      } else {
+        setCustomMessageFeedback({
+          type: 'error',
+          message: data.error || 'Failed to send message to Kick chat.',
+          details: data.details || 'Check that your Kick Access Token is valid and has chat:write permissions.',
+        });
+      }
+    } catch (err: any) {
+      setCustomMessageFeedback({
+        type: 'error',
+        message: err.message || 'Network error sending custom message.',
+      });
+    } finally {
+      setIsSendingCustom(false);
     }
   };
 
@@ -195,6 +263,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         botReplyEnabled,
         botAnnounceWinner,
         botChatCooldownMs: Number(botChatCooldownMs),
+        botWinnerTemplate: botWinnerTemplate.trim(),
+        botOpenedTemplate: botOpenedTemplate.trim(),
+        botClosedTemplate: botClosedTemplate.trim(),
       });
 
       setClientSecret('');
@@ -416,6 +487,135 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 Numeric user ID from Kick API
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* Send Custom Chat Message */}
+        <div className="p-6 rounded-2xl glass-card space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-xl bg-[#53fc18]/15 border border-[#53fc18]/30 flex items-center justify-center text-[#53fc18]">
+                <Send className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Send Custom Message to Kick Chat</h3>
+                <p className="text-xs text-neutral-400">
+                  Write any custom message below and dispatch it instantly to your live Kick chatroom.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 text-xs">
+              <span className="text-neutral-400 font-medium">Send as:</span>
+              <button
+                type="button"
+                onClick={() => setCustomMessageType('bot')}
+                className={`px-3 py-1 rounded-lg border text-xs font-semibold transition-all ${
+                  customMessageType === 'bot'
+                    ? 'bg-[#53fc18] text-black border-[#53fc18] shadow-sm'
+                    : 'bg-white/[0.04] text-neutral-400 border-white/[0.08] hover:text-white'
+                }`}
+              >
+                Official Bot
+              </button>
+              <button
+                type="button"
+                onClick={() => setCustomMessageType('user')}
+                className={`px-3 py-1 rounded-lg border text-xs font-semibold transition-all ${
+                  customMessageType === 'user'
+                    ? 'bg-[#53fc18] text-black border-[#53fc18] shadow-sm'
+                    : 'bg-white/[0.04] text-neutral-400 border-white/[0.08] hover:text-white'
+                }`}
+              >
+                Streamer / Mod
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="relative">
+              <textarea
+                rows={3}
+                value={customChatMessage}
+                onChange={(e) => setCustomChatMessage(e.target.value)}
+                placeholder="Type your message here (e.g. Giveaway starts in 5 minutes! Type !join in chat to enter!)..."
+                maxLength={500}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/[0.1] text-white text-sm focus:border-[#53fc18] focus:outline-none transition-colors resize-none placeholder:text-neutral-500"
+              />
+              <div className="absolute bottom-2.5 right-3 text-[10px] font-mono text-neutral-500">
+                {customChatMessage.length}/500
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="text-[11px] text-neutral-400 mr-1">Quick insert:</span>
+                <button
+                  type="button"
+                  onClick={() => setCustomChatMessage((prev) => `${prev} !join`.trim())}
+                  className="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-[#53fc18] font-mono text-xs border border-white/[0.08] transition-all"
+                >
+                  !join
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCustomChatMessage((prev) => `${prev} @${channelSlug}`.trim())}
+                  className="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-neutral-300 font-mono text-xs border border-white/[0.08] transition-all"
+                >
+                  @{channelSlug}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCustomChatMessage((prev) => `${prev} Giveaway is open! Type !join in chat to participate!`.trim())}
+                  className="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-neutral-300 text-xs border border-white/[0.08] transition-all"
+                >
+                  Giveaway Open
+                </button>
+              </div>
+
+              <button
+                type="button"
+                disabled={isSendingCustom || !customChatMessage.trim()}
+                onClick={handleSendCustomMessage}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#53fc18] hover:bg-[#45d914] text-black shadow-md shadow-[#53fc18]/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-1.5 cursor-pointer"
+              >
+                {isSendingCustom ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
+                    <span>Sending to Kick Chat...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>Send Message to Chat</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {customMessageFeedback && (
+              <div
+                className={`p-3.5 rounded-xl text-xs flex flex-col space-y-1 border animate-fade-in ${
+                  customMessageFeedback.type === 'success'
+                    ? 'bg-[#53fc18]/10 text-[#53fc18] border-[#53fc18]/30'
+                    : customMessageFeedback.type === 'warning'
+                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  {customMessageFeedback.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[#53fc18]" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-400" />
+                  )}
+                  <span className="font-semibold">{customMessageFeedback.message}</span>
+                </div>
+                {customMessageFeedback.details && (
+                  <p className="text-[11px] text-neutral-300 pl-6">{customMessageFeedback.details}</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -692,6 +892,55 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 className="w-4 h-4 rounded accent-[#53fc18] cursor-pointer"
               />
             </label>
+          </div>
+
+          {/* Automated Message Templates */}
+          <div className="pt-3 border-t border-white/[0.08] space-y-3">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">Automated Bot Message Templates</h4>
+
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="font-semibold text-neutral-300">Winner Announcement Template</span>
+                  <span className="text-[10px] text-neutral-400 font-mono">Tags: {'{winner}'}, {'{prize}'}</span>
+                </div>
+                <input
+                  type="text"
+                  value={botWinnerTemplate}
+                  onChange={(e) => setBotWinnerTemplate(e.target.value)}
+                  placeholder='🎉 CONGRATULATIONS @{winner}! You won "{prize}"! Contact the streamer to claim your prize!'
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/40 border border-white/[0.1] text-white text-xs font-mono focus:border-[#53fc18] focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="font-semibold text-neutral-300">Giveaway Started Template</span>
+                  <span className="text-[10px] text-neutral-400 font-mono">Tags: {'{title}'}, {'{prize}'}, {'{keyword}'}</span>
+                </div>
+                <input
+                  type="text"
+                  value={botOpenedTemplate}
+                  onChange={(e) => setBotOpenedTemplate(e.target.value)}
+                  placeholder='📢 GIVEAWAY STARTED: "{title}"! Prize: {prize}. Type {keyword} in chat to enter!'
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/40 border border-white/[0.1] text-white text-xs font-mono focus:border-[#53fc18] focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="font-semibold text-neutral-300">Entries Closed Template</span>
+                  <span className="text-[10px] text-neutral-400 font-mono">Tags: {'{title}'}, {'{count}'}</span>
+                </div>
+                <input
+                  type="text"
+                  value={botClosedTemplate}
+                  onChange={(e) => setBotClosedTemplate(e.target.value)}
+                  placeholder='🛑 GIVEAWAY ENTRIES CLOSED: Entries for "{title}" are now locked ({count} participants). Rolling the winner on stream now!'
+                  className="w-full px-3.5 py-2 rounded-xl bg-black/40 border border-white/[0.1] text-white text-xs font-mono focus:border-[#53fc18] focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

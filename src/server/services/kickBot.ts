@@ -13,6 +13,9 @@ export interface KickBotConfig {
   botReplyEnabled?: boolean;
   botAnnounceWinner?: boolean;
   botChatCooldownMs?: number;
+  botWinnerTemplate?: string;
+  botOpenedTemplate?: string;
+  botClosedTemplate?: string;
 }
 
 export interface InboundChatMessage {
@@ -346,7 +349,11 @@ export class KickBotService extends EventEmitter {
    */
   public async announceGiveawayOpened(title: string, prize: string, keyword: string): Promise<void> {
     if (!this.config.botReplyEnabled) return;
-    const announcement = `📢 GIVEAWAY STARTED: "${title}"! Prize: ${prize}. Type ${keyword} in chat to enter!`;
+    const template = this.config.botOpenedTemplate || '📢 GIVEAWAY STARTED: "{title}"! Prize: {prize}. Type {keyword} in chat to enter!';
+    const announcement = template
+      .replace(/\{title\}/g, title)
+      .replace(/\{prize\}/g, prize)
+      .replace(/\{keyword\}/g, keyword);
     await this.queueChatReply(announcement);
   }
 
@@ -355,7 +362,10 @@ export class KickBotService extends EventEmitter {
    */
   public async announceGiveawayClosed(title: string, participantCount: number): Promise<void> {
     if (!this.config.botReplyEnabled) return;
-    const announcement = `🛑 GIVEAWAY ENTRIES CLOSED: Entries for "${title}" are now locked (${participantCount} participants). Rolling the winner on stream now!`;
+    const template = this.config.botClosedTemplate || '🛑 GIVEAWAY ENTRIES CLOSED: Entries for "{title}" are now locked ({count} participants). Rolling the winner on stream now!';
+    const announcement = template
+      .replace(/\{title\}/g, title)
+      .replace(/\{count\}/g, String(participantCount));
     await this.queueChatReply(announcement);
   }
 
@@ -364,7 +374,10 @@ export class KickBotService extends EventEmitter {
    */
   public async announceWinner(winnerUsername: string, prize: string): Promise<void> {
     if (!this.config.botAnnounceWinner) return;
-    const announcement = `🎉 CONGRATULATIONS @${winnerUsername}! You won the giveaway for "${prize}"! 🏆 Contact the streamer to claim your prize!`;
+    const template = this.config.botWinnerTemplate || '🎉 CONGRATULATIONS @{winner}! You won the giveaway for "{prize}"! 🏆 Contact the streamer to claim your prize!';
+    const announcement = template
+      .replace(/\{winner\}/g, winnerUsername)
+      .replace(/\{prize\}/g, prize);
     await this.queueChatReply(announcement);
   }
 }

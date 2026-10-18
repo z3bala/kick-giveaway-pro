@@ -80,6 +80,9 @@ export interface AppSettings {
   minAccountAgeDays: number;
   overlayToken: string;
   adminProtected: boolean;
+  botWinnerTemplate?: string;
+  botOpenedTemplate?: string;
+  botClosedTemplate?: string;
 }
 
 export interface StateSyncPayload {

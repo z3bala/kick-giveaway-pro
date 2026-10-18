@@ -59,6 +59,9 @@ export function createSettingsRouter(giveawayService: GiveawayService): Router {
           requireFollower: data.requireFollower ?? current.requireFollower,
           minAccountAgeDays: data.minAccountAgeDays ?? current.minAccountAgeDays,
           overlayToken: data.overlayToken ?? current.overlayToken,
+          botWinnerTemplate: data.botWinnerTemplate ?? current.botWinnerTemplate,
+          botOpenedTemplate: data.botOpenedTemplate ?? current.botOpenedTemplate,
+          botClosedTemplate: data.botClosedTemplate ?? current.botClosedTemplate,
         },
         secretValues
       );

@@ -52,6 +52,9 @@ export const UpdateAppSettingsSchema = z.object({
   minAccountAgeDays: z.number().min(0).max(365).optional(),
   overlayToken: z.string().min(6).optional(),
   adminSecret: z.string().optional(),
+  botWinnerTemplate: z.string().max(500).optional(),
+  botOpenedTemplate: z.string().max(500).optional(),
+  botClosedTemplate: z.string().max(500).optional(),
 });
 
 export const SimulateChatSchema = z.object({
