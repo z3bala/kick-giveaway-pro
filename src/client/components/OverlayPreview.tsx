@@ -146,17 +146,17 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
       case 'top-left':
         return 'top-4 left-4 items-start justify-start';
       case 'top-center':
-        return 'top-4 left-1/2 -translate-x-1/2 items-center justify-start';
+        return 'top-4 inset-x-0 items-center justify-center';
       case 'top-right':
         return 'top-4 right-4 items-end justify-start';
       case 'bottom-left':
         return 'bottom-4 left-4 items-start justify-end';
       case 'bottom-center':
-        return 'bottom-4 left-1/2 -translate-x-1/2 items-center justify-end';
+        return 'bottom-4 inset-x-0 items-center justify-end';
       case 'bottom-right':
         return 'bottom-4 right-4 items-end justify-end';
       default:
-        return 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 items-center justify-center';
+        return 'inset-0 items-center justify-center';
     }
   };
 
@@ -349,7 +349,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
               </div>
             </div>
           ) : testMode === 'winner' ? (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-auto">
+            <div className="absolute inset-x-0 bottom-6 flex items-center justify-center pointer-events-auto">
               <WinnerCard
                 winner={sampleWinner}
                 giveaway={sampleGiveaway}

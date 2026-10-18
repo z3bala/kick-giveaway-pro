@@ -71,7 +71,7 @@ export const OverlayApp: React.FC = () => {
         };
       case 'top-center':
         return {
-          classes: 'top-6 left-1/2 -translate-x-1/2 items-center justify-start',
+          classes: 'top-6 inset-x-0 items-center justify-center',
           origin: 'top center',
         };
       case 'top-right':
@@ -86,7 +86,7 @@ export const OverlayApp: React.FC = () => {
         };
       case 'bottom-center':
         return {
-          classes: 'bottom-6 left-1/2 -translate-x-1/2 items-center justify-end',
+          classes: 'bottom-6 inset-x-0 items-center justify-center',
           origin: 'bottom center',
         };
       case 'bottom-right':
@@ -97,7 +97,7 @@ export const OverlayApp: React.FC = () => {
       case 'center':
       default:
         return {
-          classes: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 items-center justify-center',
+          classes: 'inset-0 items-center justify-center',
           origin: 'center center',
         };
     }
@@ -129,34 +129,38 @@ export const OverlayApp: React.FC = () => {
           </div>
         </div>
       ) : giveaway && giveaway.status === 'completed' && localCompletedWinner ? (
-        /* State 2: Minimalist Streamer Winner Banner (Floating horizontal lower-third, zero game obstruction) */
-        <div
-          className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 pointer-events-auto animate-fade-in"
-          style={{
-            transform: `scale(${scale})`,
-            transformOrigin: 'bottom center',
-          }}
-        >
-          <WinnerCard
-            winner={localCompletedWinner.winner}
-            giveaway={localCompletedWinner.giveaway}
-            accentColor={overlaySettings.accentColor}
-          />
+        /* State 2: Minimalist Streamer Winner Banner (Middle Bottom Centered, zero game obstruction) */
+        <div className="fixed inset-x-0 bottom-10 z-50 flex items-center justify-center pointer-events-none animate-fade-in">
+          <div
+            className="pointer-events-auto flex items-center justify-center"
+            style={{
+              transform: `scale(${scale})`,
+              transformOrigin: 'bottom center',
+            }}
+          >
+            <WinnerCard
+              winner={localCompletedWinner.winner}
+              giveaway={localCompletedWinner.giveaway}
+              accentColor={overlaySettings.accentColor}
+            />
+          </div>
         </div>
       ) : giveaway && (giveaway.status === 'open' || giveaway.status === 'closed') ? (
         /* State 3: Giveaway Live/Closed Badge (Arranged at Streamer's chosen screen position) */
-        <div
-          className={`fixed z-30 flex flex-col pointer-events-auto ${posConfig.classes}`}
-          style={{
-            transform: `scale(${scale})`,
-            transformOrigin: posConfig.origin,
-          }}
-        >
-          <OverlayBadge
-            giveaway={giveaway}
-            settings={overlaySettings}
-            recentJoined={recentJoined}
-          />
+        <div className={`fixed z-30 flex pointer-events-none ${posConfig.classes}`}>
+          <div
+            className="flex flex-col pointer-events-auto"
+            style={{
+              transform: `scale(${scale})`,
+              transformOrigin: posConfig.origin,
+            }}
+          >
+            <OverlayBadge
+              giveaway={giveaway}
+              settings={overlaySettings}
+              recentJoined={recentJoined}
+            />
+          </div>
         </div>
       ) : (
         /* State 4: Idle / Standby (Transparent on stream) */
