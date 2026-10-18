@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Trophy, Gift, CheckCircle } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 import type { Participant, Giveaway } from '../../shared/types.js';
 
 interface WinnerCardProps {
@@ -16,63 +16,132 @@ export const WinnerCard: React.FC<WinnerCardProps> = ({
 }) => {
   useEffect(() => {
     try {
+      // Stage 1: Intense dual side cannons
       confetti({
-        particleCount: 75,
-        spread: 60,
-        origin: { y: 0.55, x: 0.35 },
-        colors: [accentColor, '#ffb703', '#ffffff', '#53fc18'],
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6, x: 0.25 },
+        colors: [accentColor, '#ffd700', '#ffffff', '#00f0ff'],
       });
       confetti({
-        particleCount: 75,
-        spread: 60,
-        origin: { y: 0.55, x: 0.65 },
-        colors: [accentColor, '#ffb703', '#ffffff', '#53fc18'],
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6, x: 0.75 },
+        colors: [accentColor, '#ffd700', '#ffffff', '#00f0ff'],
       });
+
+      // Stage 2: Delayed ceiling rain (350ms)
+      const timer = setTimeout(() => {
+        confetti({
+          particleCount: 90,
+          angle: 90,
+          spread: 100,
+          origin: { y: 0.1, x: 0.5 },
+          colors: [accentColor, '#ffffff', '#ffd700'],
+        });
+      }, 350);
+
+      return () => clearTimeout(timer);
     } catch {}
   }, [winner.id, accentColor]);
 
   return (
-    <div className="relative mx-auto max-w-lg p-7 rounded-2xl bg-[#090b12]/95 border-2 border-[#1f2638] shadow-2xl backdrop-blur-xl animate-scale-in text-center overflow-hidden">
-      {/* Background ambient lighting */}
+    <div className="relative mx-auto max-w-xl w-full p-8 rounded-3xl bg-[#080b12]/95 border-2 shadow-2xl backdrop-blur-2xl animate-scale-in text-center select-none overflow-hidden"
+      style={{
+        borderColor: `${accentColor}80`,
+        boxShadow: `0 0 60px -10px ${accentColor}50, 0 25px 60px -15px rgba(0,0,0,0.9)`,
+      }}
+    >
+      {/* Dynamic Ambient Glow Behind Card */}
       <div
-        className="absolute -top-20 -left-20 w-44 h-44 rounded-full opacity-25 blur-3xl pointer-events-none"
+        className="absolute -top-24 -left-24 w-56 h-56 rounded-full opacity-30 blur-3xl pointer-events-none"
         style={{ backgroundColor: accentColor }}
       />
       <div
-        className="absolute -bottom-20 -right-20 w-44 h-44 rounded-full opacity-20 blur-3xl pointer-events-none bg-amber-500"
+        className="absolute -bottom-24 -right-24 w-56 h-56 rounded-full opacity-20 blur-3xl pointer-events-none"
+        style={{ backgroundColor: '#ffd700' }}
       />
 
-      {/* Trophy Badge */}
-      <div className="relative inline-flex items-center justify-center mb-3">
+      {/* Top Banner Tag */}
+      <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full mb-6 border shadow-sm"
+        style={{
+          backgroundColor: `${accentColor}15`,
+          borderColor: `${accentColor}40`,
+        }}
+      >
+        <span
+          className="w-2 h-2 rounded-full animate-ping"
+          style={{ backgroundColor: accentColor }}
+        />
+        <span
+          className="text-xs font-black uppercase tracking-widest font-sans"
+          style={{ color: accentColor }}
+        >
+          GIVEAWAY WINNER
+        </span>
+      </div>
+
+      {/* Large Winner Avatar Badge */}
+      <div className="relative inline-flex items-center justify-center mb-4">
+        {/* Glowing Outer Ring */}
         <div
-          className="w-16 h-16 rounded-xl flex items-center justify-center shadow-lg border border-white/20"
+          className="w-24 h-24 rounded-2xl p-1 flex items-center justify-center shadow-2xl border"
           style={{
-            background: `linear-gradient(135deg, ${accentColor}, #ffb703)`,
+            borderColor: `${accentColor}80`,
+            boxShadow: `0 0 30px ${accentColor}60`,
+            background: `linear-gradient(135deg, ${accentColor}30, rgba(255,255,255,0.05))`,
           }}
         >
-          <Trophy className="w-8 h-8 text-white drop-shadow-md" />
+          <div className="w-full h-full rounded-xl bg-[#0f1422] flex items-center justify-center font-black text-3xl text-white font-mono border border-white/10">
+            {winner.username.charAt(0).toUpperCase()}
+          </div>
+        </div>
+
+        {/* Verified Badge Icon */}
+        <div
+          className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center shadow-lg border-2 border-[#080b12]"
+          style={{ backgroundColor: accentColor }}
+        >
+          <Check className="w-4 h-4 text-black stroke-[3]" />
         </div>
       </div>
 
-      <div className="text-[10px] uppercase tracking-widest telemetry text-neutral-400 font-bold mb-1">
-        OFFICIAL GIVEAWAY VICTOR
+      {/* Winner Username */}
+      <div className="mb-6">
+        <h1
+          className="text-4xl sm:text-5xl font-black text-white tracking-tight drop-shadow-md truncate px-2"
+          style={{
+            textShadow: `0 0 30px ${accentColor}80`,
+          }}
+        >
+          @{winner.username}
+        </h1>
       </div>
 
-      {/* Winner Handle */}
-      <h1 className="text-3xl sm:text-4xl font-black text-white telemetry tracking-tight drop-shadow-md mb-3">
-        @{winner.username}
-      </h1>
-
-      {/* Prize Manifest Display */}
-      <div className="inline-flex items-center space-x-2.5 px-4 py-2 rounded-lg bg-[#111520] border border-[#222a3d] shadow-inner">
-        <Gift className="w-4 h-4 text-amber-400 flex-shrink-0" />
-        <span className="text-neutral-400 telemetry text-xs font-semibold">PRIZE:</span>
-        <span className="text-white font-bold text-sm tracking-wide">{giveaway.prize}</span>
+      {/* Prize Showcase Box */}
+      <div
+        className="w-full p-4 rounded-2xl bg-[#0e1320] border shadow-inner flex flex-col items-center justify-center space-y-1"
+        style={{
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+        }}
+      >
+        <div className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+          PRIZE CLAIMED
+        </div>
+        <div
+          className="text-xl sm:text-2xl font-black text-white tracking-tight truncate max-w-full px-2"
+          style={{ color: accentColor }}
+        >
+          {giveaway.prize || giveaway.title}
+        </div>
       </div>
 
-      <div className="mt-5 text-[10px] text-neutral-400 telemetry uppercase tracking-wider flex items-center justify-center space-x-1.5">
-        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-        <span>DRAW VERIFIED • {giveaway.participantCount} TOTAL ENTRANTS</span>
+      {/* Simple Stream Footer */}
+      <div className="mt-6 flex items-center justify-center space-x-2 text-xs font-medium text-neutral-400">
+        <Sparkles className="w-3.5 h-3.5 text-neutral-400" />
+        <span>{giveaway.participantCount} entrants in pool</span>
+        <span>•</span>
+        <span className="text-neutral-300">GGs in the chat!</span>
       </div>
     </div>
   );

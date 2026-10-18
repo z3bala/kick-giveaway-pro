@@ -74,6 +74,20 @@ class SoundEffectsManager {
 
     try {
       const now = ctx.currentTime;
+
+      // Sub-bass impact drop for weight and hype
+      const subOsc = ctx.createOscillator();
+      const subGain = ctx.createGain();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(120, now);
+      subOsc.frequency.exponentialRampToValueAtTime(35, now + 0.4);
+      subGain.gain.setValueAtTime(0.35 * this.volume, now);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+      subOsc.connect(subGain);
+      subGain.connect(ctx.destination);
+      subOsc.start(now);
+      subOsc.stop(now + 0.5);
+
       const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6 triumphant chord
 
       notes.forEach((freq, idx) => {
