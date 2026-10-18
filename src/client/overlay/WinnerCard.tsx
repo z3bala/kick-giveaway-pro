@@ -49,18 +49,18 @@ export const WinnerCard: React.FC<WinnerCardProps> = ({
         </span>
       </div>
 
-      {/* Username */}
-      <span className="text-sm font-black text-white font-sans tracking-tight truncate max-w-[180px]">
+      {/* Full Username - No Truncation */}
+      <span className="text-sm font-black text-white font-sans tracking-tight whitespace-nowrap flex-shrink-0">
         @{winner.username}
       </span>
 
       {/* Divider */}
       <span className="h-4 w-[1px] bg-white/15 flex-shrink-0" />
 
-      {/* Prize Details */}
-      <div className="flex items-center space-x-1.5 text-xs truncate max-w-[260px]">
+      {/* Prize Details - Full Text */}
+      <div className="flex items-center space-x-1.5 text-xs whitespace-nowrap flex-shrink-0">
         <span className="text-neutral-400 font-medium">Prize:</span>
-        <span className="font-bold text-white truncate">
+        <span className="font-bold text-white">
           {giveaway.prize || giveaway.title}
         </span>
       </div>

@@ -197,10 +197,13 @@ export const NameRoll: React.FC<NameRollProps> = ({
                   {card.username.charAt(0).toUpperCase()}
                 </div>
 
-                {/* Username */}
+                {/* Username - Full Name */}
                 <div
-                  className="text-xs font-bold truncate max-w-[124px] text-center px-1"
-                  style={{ color: highlight ? accentColor : '#ffffff' }}
+                  className="text-xs font-bold text-center px-1 break-words w-full leading-tight max-w-[145px]"
+                  style={{
+                    color: highlight ? accentColor : '#ffffff',
+                    fontSize: card.username.length > 13 ? '10px' : '11px',
+                  }}
                 >
                   @{card.username}
                 </div>
