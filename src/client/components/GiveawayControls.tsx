@@ -116,6 +116,31 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
     }
   };
 
+  const handleWheelSave = async () => {
+    try {
+      const parsed = parseAmounts(activeWheelAmounts);
+      if (parsed.length === 0) return;
+      await onUpdateWheel?.(true, parsed);
+      setIsEditingWheel(false);
+      setFeedback({ type: 'success', message: `Wheel amounts updated to ${parsed.join(', ')}` });
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message });
+    }
+  };
+
+  const handleToggleWheel = async (enabled: boolean) => {
+    try {
+      const currentAmounts = giveaway?.wheelAmounts || ['1$', '2$', '3$', '5$', '10$'];
+      await onUpdateWheel?.(enabled, currentAmounts);
+      setFeedback({
+        type: 'success',
+        message: enabled ? 'Prize wheel enabled!' : 'Prize wheel disabled.',
+      });
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message });
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl pb-12">
       {/* Page Header with Clear Cache & Reset Button */}
@@ -209,47 +234,110 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
                 </div>
               </div>
 
-              {/* Inline Keyword Editor */}
-              <div className="flex items-center space-x-2 bg-white/[0.04] p-2 rounded-xl border border-white/[0.08]">
-                <KeyRound className="w-4 h-4 text-[#53fc18]" />
-                {isEditingKeyword ? (
-                  <div className="flex items-center space-x-1.5">
-                    <input
-                      type="text"
-                      value={customKeyword}
-                      onChange={(e) => setCustomKeyword(e.target.value)}
-                      placeholder="!keyword"
-                      className="bg-black/60 px-2.5 py-1 rounded-lg text-xs font-mono text-white border border-[#53fc18]/50 focus:outline-none w-28"
-                    />
-                    <button
-                      onClick={handleKeywordSave}
-                      className="p-1 rounded bg-[#53fc18] text-black hover:bg-[#45d914]"
-                    >
-                      <Check className="w-3.5 h-3.5 stroke-[3]" />
-                    </button>
-                    <button
-                      onClick={() => setIsEditingKeyword(false)}
-                      className="p-1 rounded bg-white/[0.1] text-neutral-300 hover:bg-white/[0.2]"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2 text-xs">
-                    <span className="text-neutral-400">Keyword:</span>
-                    <span className="font-mono font-bold text-[#53fc18]">{giveaway.keyword}</span>
-                    <button
-                      onClick={() => {
-                        setCustomKeyword(giveaway.keyword);
-                        setIsEditingKeyword(true);
-                      }}
-                      className="text-neutral-400 hover:text-white transition-colors"
-                      title="Edit keyword"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
+              <div className="flex items-center space-x-2 flex-wrap gap-2">
+                {/* Inline Keyword Editor */}
+                <div className="flex items-center space-x-2 bg-white/[0.04] p-2 rounded-xl border border-white/[0.08]">
+                  <KeyRound className="w-4 h-4 text-[#53fc18]" />
+                  {isEditingKeyword ? (
+                    <div className="flex items-center space-x-1.5">
+                      <input
+                        type="text"
+                        value={customKeyword}
+                        onChange={(e) => setCustomKeyword(e.target.value)}
+                        placeholder="!keyword"
+                        className="bg-black/60 px-2.5 py-1 rounded-lg text-xs font-mono text-white border border-[#53fc18]/50 focus:outline-none w-28"
+                      />
+                      <button
+                        onClick={handleKeywordSave}
+                        className="p-1 rounded bg-[#53fc18] text-black hover:bg-[#45d914]"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </button>
+                      <button
+                        onClick={() => setIsEditingKeyword(false)}
+                        className="p-1 rounded bg-white/[0.1] text-neutral-300 hover:bg-white/[0.2]"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2 text-xs">
+                      <span className="text-neutral-400">Keyword:</span>
+                      <span className="font-mono font-bold text-[#53fc18]">{giveaway.keyword}</span>
+                      <button
+                        onClick={() => {
+                          setCustomKeyword(giveaway.keyword);
+                          setIsEditingKeyword(true);
+                        }}
+                        className="text-neutral-400 hover:text-white transition-colors"
+                        title="Edit keyword"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Inline Wheel Amounts Editor */}
+                <div className="flex items-center space-x-2 bg-white/[0.04] p-2 rounded-xl border border-white/[0.08]">
+                  <span className="text-xs">🎡</span>
+                  {isEditingWheel ? (
+                    <div className="flex items-center space-x-1.5 flex-wrap gap-1">
+                      <input
+                        type="text"
+                        value={activeWheelAmounts}
+                        onChange={(e) => setActiveWheelAmounts(e.target.value)}
+                        placeholder="1$, 2$, 3$, 5$, 10$"
+                        className="bg-black/60 px-2.5 py-1 rounded-lg text-xs font-mono text-white border border-[#53fc18]/50 focus:outline-none w-44"
+                      />
+                      <button
+                        onClick={handleWheelSave}
+                        className="p-1 rounded bg-[#53fc18] text-black hover:bg-[#45d914]"
+                        title="Save amounts"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </button>
+                      <button
+                        onClick={() => setIsEditingWheel(false)}
+                        className="p-1 rounded bg-white/[0.1] text-neutral-300 hover:bg-white/[0.2]"
+                        title="Cancel"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2 text-xs">
+                      <span className="text-neutral-400">Prize Wheel:</span>
+                      <span className="font-mono font-bold text-[#53fc18]">
+                        {giveaway.wheelEnabled
+                          ? (giveaway.wheelAmounts || ['1$', '2$', '3$', '5$', '10$']).join(', ')
+                          : 'Disabled'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setActiveWheelAmounts(
+                            (giveaway.wheelAmounts || ['1$', '2$', '3$', '5$', '10$']).join(', ')
+                          );
+                          setIsEditingWheel(true);
+                        }}
+                        className="text-neutral-400 hover:text-white transition-colors"
+                        title="Edit wheel amounts"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleToggleWheel(!giveaway.wheelEnabled)}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors ${
+                          giveaway.wheelEnabled
+                            ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500/30'
+                            : 'bg-[#53fc18]/20 text-[#53fc18] hover:bg-[#53fc18]/30'
+                        }`}
+                      >
+                        {giveaway.wheelEnabled ? 'Turn Off' : 'Turn On'}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
