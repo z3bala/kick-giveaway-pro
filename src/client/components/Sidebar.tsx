@@ -46,6 +46,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   participantCount,
   giveawayStatus = 'draft',
+  gtbStatus = 'idle',
+  gtbGuessCount = 0,
   kickChannelSlug = '',
   isKickConnected = false,
   overlayToken = '',
