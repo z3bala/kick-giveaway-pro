@@ -7,6 +7,12 @@ export interface SendChatMessageResult {
   error?: string;
   data?: any;
 }
+export interface ExchangeAuthCodeResult {
+  success: boolean;
+  accessToken?: string;
+  error?: string;
+  status?: number;
+}
 
 export class KickApiClient {
   private baseUrl = 'https://api.kick.com';
@@ -109,16 +115,31 @@ export class KickApiClient {
     }
   }
 
+
   /**
    * Exchange OAuth authorization code for User Access Token (chat:write scope)
    */
-  public async exchangeAuthCode(code: string, redirectUri: string, codeVerifier?: string): Promise<string | null> {
-    const effectiveClientId = this.clientId || process.env.KICK_CLIENT_ID || '01M55MY622GWQP6EA2HSJ4CJTJ';
-    const effectiveClientSecret = this.clientSecret || process.env.KICK_CLIENT_SECRET || '4ba04b149cf41010573ec24b3d433cd32fc713b0afc80795ddf1315f933b6179';
+  public async exchangeAuthCode(
+    code: string,
+    redirectUri: string,
+    codeVerifier?: string,
+    customClientId?: string,
+    customClientSecret?: string
+  ): Promise<ExchangeAuthCodeResult> {
+    const effectiveClientId =
+      customClientId ||
+      this.clientId ||
+      process.env.KICK_CLIENT_ID ||
+      '01M55MY622GWQP6EA2HSJ4CJTJ';
+    const effectiveClientSecret =
+      customClientSecret ||
+      this.clientSecret ||
+      process.env.KICK_CLIENT_SECRET ||
+      '4ba04b149cf41010573ec24b3d433cd32fc713b0afc80795ddf1315f933b6179';
 
     if (!effectiveClientId || !effectiveClientSecret) {
       console.warn('[KickApiClient] Missing clientId or clientSecret for code exchange.');
-      return null;
+      return { success: false, error: 'Missing Client ID or Client Secret credentials.' };
     }
 
     try {
@@ -148,19 +169,31 @@ export class KickApiClient {
       if (!res.ok) {
         const errText = await res.text();
         console.error(`[KickApiClient] Auth code exchange failed (${res.status}):`, errText);
-        return null;
+        let parsedMessage = errText;
+        try {
+          const parsed = JSON.parse(errText);
+          parsedMessage = parsed.error_description || parsed.error || parsed.message || errText;
+        } catch {}
+        return {
+          success: false,
+          status: res.status,
+          error: parsedMessage,
+        };
       }
 
       const data = (await res.json()) as any;
       if (data.access_token) {
         this.accessToken = data.access_token;
         console.log('[KickApiClient] Successfully exchanged authorization code for Kick access token.');
-        return data.access_token;
+        return {
+          success: true,
+          accessToken: data.access_token,
+        };
       }
-      return null;
+      return { success: false, error: 'No access_token returned by Kick token endpoint.' };
     } catch (err: any) {
       console.error('[KickApiClient] Error in auth code exchange:', err.message);
-      return null;
+      return { success: false, error: err.message };
     }
   }
 

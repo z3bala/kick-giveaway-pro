@@ -89,24 +89,31 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
 
   // 1-Click Authorize Endpoint with Stateless Resilient PKCE S256
   router.get('/authorize', (req, res) => {
-    const appSettings = giveawayService.getAppSettings();
-    const clientId = (req.query.client_id as string)?.trim() || appSettings.kickClientId || process.env.KICK_CLIENT_ID || '01M55MY622GWQP6EA2HSJ4CJTJ';
+    const rawClientId = giveawayService.getRawClientId();
+    const clientId = (req.query.client_id as string)?.trim() || rawClientId;
 
     const redirectUri = getRedirectUri(req);
 
-    // Generate PKCE code_verifier and code_challenge
-    const verifier = crypto.randomBytes(32).toString('base64url');
+    // Generate RFC 7636 PKCE code_verifier (64 hex characters: zero underscores or fragile delimiters)
+    const verifier = crypto.randomBytes(32).toString('hex');
     const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
 
-    // Stateless PKCE state payload
-    const state = `pkce_${verifier}_${Date.now()}`;
-    pkceSessions.set(state, { verifier, expires: Date.now() + 30 * 60 * 1000 });
+    // Stateless Base64URL-encoded state payload storing verifier and exact redirect URI
+    const statePayload = Buffer.from(
+      JSON.stringify({ v: verifier, r: redirectUri, t: Date.now() })
+    ).toString('base64url');
+
+    pkceSessions.set(statePayload, { verifier, expires: Date.now() + 30 * 60 * 1000 });
+    try {
+      dbOps.saveSetting(giveawayService.getDb(), 'pkce_active_verifier', verifier);
+      dbOps.saveSetting(giveawayService.getDb(), 'pkce_active_redirect', redirectUri);
+    } catch {}
 
     const kickAuthUrl = `https://id.kick.com/oauth/authorize?response_type=code&client_id=${encodeURIComponent(
       clientId
     )}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(
       'chat:write channel:read user:read'
-    )}&code_challenge=${challenge}&code_challenge_method=S256&state=${state}`;
+    )}&code_challenge=${challenge}&code_challenge_method=S256&state=${statePayload}`;
 
     res.redirect(kickAuthUrl);
   });
@@ -121,7 +128,7 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
           <head><title>Kick Authorization</title></head>
           <body style="background:#090d16;color:#ffffff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
             <div style="background:#131826;padding:32px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);max-width:440px;text-align:center;">
-              <h2 style="color:#f43f5e;margin-top:0;">Authorization Failed</h2>
+              <h2 style="color:#f43f5e;margin-top:0;">Authorization Denied</h2>
               <p style="color:#94a3b8;font-size:14px;">${error_description || error}</p>
               <a href="/settings" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#53fc18;color:#000;text-decoration:none;font-weight:bold;border-radius:8px;">Return to Settings</a>
             </div>
@@ -132,35 +139,58 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
     }
 
     if (code) {
-      const redirectUri = getRedirectUri(req);
       const stateStr = String(state || '');
-
       let codeVerifier: string | undefined;
+      let originalRedirectUri: string | undefined;
 
-      if (stateStr.startsWith('pkce_')) {
-        const parts = stateStr.split('_');
-        if (parts[1]) {
-          codeVerifier = parts[1];
+      // 1. Try decoding JSON payload from Base64URL state
+      try {
+        const decoded = JSON.parse(Buffer.from(stateStr, 'base64url').toString('utf8'));
+        if (decoded && decoded.v) {
+          codeVerifier = decoded.v;
+          originalRedirectUri = decoded.r;
         }
-      } else if (stateStr.includes('.')) {
-        const [dataPart] = stateStr.split('.');
-        try {
-          const jsonStr = Buffer.from(dataPart, 'base64url').toString('utf8');
-          const parsed = JSON.parse(jsonStr);
-          codeVerifier = parsed.v;
-        } catch {}
-      }
+      } catch {}
 
+      // 2. Fallback to in-memory session map
       if (!codeVerifier) {
         const session = pkceSessions.get(stateStr);
         codeVerifier = session?.verifier;
       }
+
+      // 3. Fallback to regex match if older format
+      if (!codeVerifier && stateStr.startsWith('pkce_')) {
+        const match = stateStr.match(/^pkce_(.+)_\d+$/);
+        if (match && match[1]) {
+          codeVerifier = match[1];
+        }
+      }
+
+      // 4. Fallback to persisted database setting
+      if (!codeVerifier) {
+        try {
+          codeVerifier = dbOps.getSetting<string>(giveawayService.getDb(), 'pkce_active_verifier', '') || undefined;
+          originalRedirectUri = dbOps.getSetting<string>(giveawayService.getDb(), 'pkce_active_redirect', '') || undefined;
+        } catch {}
+      }
+
       if (stateStr) pkceSessions.delete(stateStr);
 
+      const redirectUri = originalRedirectUri || getRedirectUri(req);
+      const rawClientId = giveawayService.getRawClientId();
+      const rawClientSecret = giveawayService.getRawClientSecret();
+
       try {
-        const token = await kickBot.getApiClient().exchangeAuthCode(String(code), redirectUri, codeVerifier);
-        if (token) {
-          giveawayService.updateAppSettings({}, { accessToken: token });
+        const result = await kickBot.getApiClient().exchangeAuthCode(
+          String(code),
+          redirectUri,
+          codeVerifier,
+          rawClientId,
+          rawClientSecret
+        );
+
+        if (result.success && result.accessToken) {
+          giveawayService.updateAppSettings({}, { accessToken: result.accessToken });
           const broadcasterId = giveawayService.getAppSettings().kickBroadcasterId || '29176855';
           await kickBot.getApiClient().subscribeToChatEvents(broadcasterId);
 
@@ -178,11 +208,21 @@ export function createKickRouter(kickBot: KickBotService, giveawayService: Givea
             <!DOCTYPE html>
             <html>
               <head><title>Kick Authorization</title></head>
-              <body style="background:#090d16;color:#ffffff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-                <div style="background:#131826;padding:32px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);max-width:480px;text-align:center;">
-                  <h2 style="color:#f43f5e;margin-top:0;">Token Exchange Failed</h2>
-                  <p style="color:#94a3b8;font-size:14px;">Kick accepted authorization code, but token exchange was rejected. Ensure Client Secret matches in dev.kick.com.</p>
-                  <a href="/settings" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#53fc18;color:#000;text-decoration:none;font-weight:bold;border-radius:8px;">Return to Settings</a>
+              <body style="background:#090d16;color:#ffffff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;box-sizing:border-box;">
+                <div style="background:#131826;padding:32px;border-radius:16px;border:1px solid rgba(255,255,255,0.1);max-width:540px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.8);">
+                  <div style="width:48px;height:48px;border-radius:12px;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.3);margin:0 auto 16px auto;display:flex;align-items:center;justify-content:center;font-size:22px;color:#f43f5e;">⚠️</div>
+                  <h2 style="color:#f43f5e;margin-top:0;font-size:20px;">Kick Token Exchange Failed</h2>
+                  <div style="background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 16px;margin:16px 0;text-align:left;font-family:monospace;font-size:12px;color:#cbd5e1;word-break:break-all;">
+                    <div style="color:#94a3b8;margin-bottom:4px;"><strong>HTTP Status:</strong> ${result.status || 'N/A'}</div>
+                    <div style="color:#fca5a5;"><strong>Kick Error:</strong> ${result.error || 'Code verification failed'}</div>
+                  </div>
+                  <p style="color:#94a3b8;font-size:13px;line-height:1.5;">
+                    If Kick returned <em>invalid_client</em>, verify that your <strong>Client Secret</strong> in Settings matches the secret in <a href="https://dev.kick.com" target="_blank" style="color:#53fc18;">dev.kick.com</a>.
+                  </p>
+                  <div style="margin-top:24px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+                    <a href="/api/kick/authorize" style="padding:10px 20px;background:#53fc18;color:#000;text-decoration:none;font-weight:bold;border-radius:8px;font-size:13px;">Re-Authorize 1-Click</a>
+                    <a href="/settings" style="padding:10px 20px;background:rgba(255,255,255,0.08);color:#fff;text-decoration:none;font-weight:600;border-radius:8px;font-size:13px;">Return to Settings</a>
+                  </div>
                 </div>
               </body>
             </html>

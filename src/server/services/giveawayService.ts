@@ -150,6 +150,23 @@ export class GiveawayService {
     return process.env.KICK_ACCESS_TOKEN || dbOps.getSetting<string>(this.db, 'kick_access_token', '') || '';
   }
 
+  public getRawClientSecret(): string {
+    return (
+      process.env.KICK_CLIENT_SECRET ||
+      dbOps.getSetting<string>(this.db, 'kick_client_secret', '') ||
+      '4ba04b149cf41010573ec24b3d433cd32fc713b0afc80795ddf1315f933b6179'
+    );
+  }
+
+  public getRawClientId(): string {
+    return (
+      this.appSettings.kickClientId ||
+      process.env.KICK_CLIENT_ID ||
+      dbOps.getSetting<string>(this.db, 'kick_client_id', '') ||
+      '01M55MY622GWQP6EA2HSJ4CJTJ'
+    );
+  }
+
   // ---------------- Giveaway Lifecycle Operations ----------------
 
   public createGiveaway(
