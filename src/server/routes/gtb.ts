@@ -81,20 +81,16 @@ export function createGtbRouter(gtbService: GtbService): Router {
       }
 
       const { username, guess } = parsed.data;
-      const handled = gtbService.handleChatMessage({
-        id: `manual-${Date.now()}`,
-        userId: `manual_${username.toLowerCase()}`,
-        username,
-        content: `!gtb ${guess}`,
-        timestamp: new Date().toISOString(),
-      });
+      const { guess: savedGuess, isNew } = gtbService.recordGuess(username, guess);
 
-      if (!handled) {
-        res.status(400).json({ error: 'Could not record guess: No open Guess The Balance event.' });
+      if (!isNew) {
+        res.status(400).json({
+          error: `@${username} has already guessed $${savedGuess.guess.toFixed(2)}. Viewers can only guess once and cannot change their prediction.`,
+        });
         return;
       }
 
-      res.json({ success: true });
+      res.json({ success: true, guess: savedGuess });
     } catch (err: any) {
       res.status(400).json({ error: err.message });
     }

@@ -163,6 +163,39 @@ export const ChatSimulator: React.FC<ChatSimulatorProps> = ({
     }
   };
 
+  const simulateGtbDuplicate = async () => {
+    const fakeViewer = `StakeGuesser_${Math.floor(Math.random() * 899) + 100}`;
+    await onSimulateChat(fakeViewer, '!gtb 260');
+    setChatLogs((prev) => [
+      ...prev,
+      {
+        username: fakeViewer,
+        message: '!gtb 260',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: 'user',
+      },
+    ]);
+
+    await new Promise((r) => setTimeout(r, 400));
+
+    await onSimulateChat(fakeViewer, '!gtb 310');
+    setChatLogs((prev) => [
+      ...prev,
+      {
+        username: fakeViewer,
+        message: '!gtb 310',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: 'user',
+      },
+      {
+        username: 'Kick Bot',
+        message: `⚠️ @${fakeViewer}, you already predicted $260.00! Predictions are final and cannot be changed.`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: 'system',
+      },
+    ]);
+  };
+
   return (
     <div className="space-y-6 max-w-5xl pb-12">
       {/* Header */}
@@ -283,6 +316,15 @@ export const ChatSimulator: React.FC<ChatSimulatorProps> = ({
                   <span>Batch 7 Guesses</span>
                 </button>
               </div>
+
+              <button
+                type="button"
+                onClick={simulateGtbDuplicate}
+                disabled={isSending}
+                className="w-full py-2 px-3 rounded-xl text-xs font-semibold bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 hover:text-white flex items-center justify-center space-x-1 transition-all cursor-pointer"
+              >
+                <span>Test Changed Guess (Locked)</span>
+              </button>
             </div>
 
             {giveaway?.status !== 'open' && (

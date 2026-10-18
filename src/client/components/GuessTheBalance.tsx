@@ -127,7 +127,7 @@ export const GuessTheBalance: React.FC<GuessTheBalanceProps> = ({
 
   const copyChatInstruction = async () => {
     const cmd = gtbEvent?.keyword || '!gtb';
-    const text = `🎰 GUESS THE BALANCE: Guess my finishing balance on Stake.com! Type ${cmd} <amount> in chat (e.g. ${cmd} 260) to enter! Prize: ${gtbEvent?.prize || '$50'}`;
+    const text = `🎰 GUESS THE BALANCE: Guess my finishing balance on Stake.com! Type ${cmd} <amount> in chat (e.g. ${cmd} 260) to enter! 1 guess per viewer (predictions cannot be changed). Prize: ${gtbEvent?.prize || '$50'}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopiedChatHelper(true);
@@ -194,7 +194,7 @@ export const GuessTheBalance: React.FC<GuessTheBalanceProps> = ({
             <span className="text-[#53fc18] font-bold">💬 Chat Announcement Helper:</span>
             <span className="text-neutral-300 font-mono text-[11px] truncate max-w-xl">
               Type <strong className="text-[#53fc18]">{gtbEvent.keyword} &lt;amount&gt;</strong> (e.g.{' '}
-              {gtbEvent.keyword} 260) to enter!
+              {gtbEvent.keyword} 260) to enter! • 1 guess per viewer (predictions are locked)
             </span>
           </div>
           <button

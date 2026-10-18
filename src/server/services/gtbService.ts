@@ -12,6 +12,7 @@ export class GtbService {
   private activeEvent: GtbEvent | null = null;
   private guesses: GtbGuess[] = [];
   private lastJoinNotificationTime = 0;
+  private lastDuplicateWarningTime = 0;
 
   constructor(
     private db: DatabaseSync,
@@ -150,29 +151,44 @@ export class GtbService {
       return false;
     }
 
-    const savedGuess = this.recordGuess(msg.username, guessVal, msg.userId, msg.timestamp);
+    const { guess: savedGuess, isNew } = this.recordGuess(
+      msg.username,
+      guessVal,
+      msg.userId,
+      msg.timestamp
+    );
 
     // Throttled chat acknowledgement so chat stays clean
     const currentMs = Date.now();
-    if (currentMs - this.lastJoinNotificationTime > 2500) {
-      this.lastJoinNotificationTime = currentMs;
-      this.kickBot.queueChatReply(
-        `🎯 @${savedGuess.username}, your Stake balance guess of $${guessVal.toFixed(2)} is locked in! (${this.guesses.length} total predictions)`
-      );
+    if (isNew) {
+      if (currentMs - this.lastJoinNotificationTime > 2500) {
+        this.lastJoinNotificationTime = currentMs;
+        this.kickBot.queueChatReply(
+          `🎯 @${savedGuess.username}, your Stake balance guess of $${guessVal.toFixed(2)} is locked in! (${this.guesses.length} total predictions)`
+        );
+      }
+    } else {
+      // Viewer attempted to change prediction: politely remind them it is locked
+      if (currentMs - this.lastDuplicateWarningTime > 2000) {
+        this.lastDuplicateWarningTime = currentMs;
+        this.kickBot.queueChatReply(
+          `⚠️ @${savedGuess.username}, you already predicted $${savedGuess.guess.toFixed(2)}! Predictions are final and cannot be changed.`
+        );
+      }
     }
 
-    return true;
+    return isNew;
   }
 
   /**
-   * Directly record or update a viewer guess
+   * Directly record viewer guess (only once per viewer, no changes allowed)
    */
   public recordGuess(
     username: string,
     guessVal: number,
     userId?: string,
     customTimestamp?: string
-  ): GtbGuess {
+  ): { guess: GtbGuess; isNew: boolean } {
     if (!this.activeEvent || this.activeEvent.status !== 'open') {
       throw new Error('No open Guess The Balance event.');
     }
@@ -206,23 +222,16 @@ export class GtbService {
     if (isNew) {
       this.guesses.push(savedGuess);
       this.activeEvent.guessCount = this.guesses.length;
-    } else {
-      const idx = this.guesses.findIndex((g) => g.kickUserId === effectiveUserId);
-      if (idx !== -1) {
-        this.guesses[idx] = savedGuess;
-      } else {
-        this.guesses.push(savedGuess);
-      }
+
+      this.broadcaster.emitEvent('gtb.guessAdded', {
+        guess: savedGuess,
+        isNew: true,
+        totalGuesses: this.guesses.length,
+        event: this.activeEvent,
+      });
     }
 
-    this.broadcaster.emitEvent('gtb.guessAdded', {
-      guess: savedGuess,
-      isNew,
-      totalGuesses: this.guesses.length,
-      event: this.activeEvent,
-    });
-
-    return savedGuess;
+    return { guess: savedGuess, isNew };
   }
 
   /**

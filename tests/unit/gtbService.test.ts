@@ -83,10 +83,10 @@ describe('Guess The Balance (GTB) Closest Prediction Resolution', () => {
     expect(guesses.find((g) => g.username === 'ViewerCharlie')?.guess).toBe(310);
   });
 
-  it('updates a viewer existing guess without duplicate entries', () => {
+  it('allows a viewer to guess only once and prevents changing predictions', () => {
     gtbService.createEvent('Stake Ending Balance', '$50', '!gtb');
 
-    gtbService.handleChatMessage({
+    const firstResult = gtbService.handleChatMessage({
       messageId: 'm1',
       senderId: 'u1',
       username: 'ViewerAlice',
@@ -94,7 +94,8 @@ describe('Guess The Balance (GTB) Closest Prediction Resolution', () => {
       timestamp: '2026-10-18T00:00:00Z',
     });
 
-    gtbService.handleChatMessage({
+    // Alice tries to change her prediction to 255
+    const secondResult = gtbService.handleChatMessage({
       messageId: 'm2',
       senderId: 'u1',
       username: 'ViewerAlice',
@@ -102,9 +103,19 @@ describe('Guess The Balance (GTB) Closest Prediction Resolution', () => {
       timestamp: '2026-10-18T00:01:00Z',
     });
 
+    expect(firstResult).toBe(true);
+    expect(secondResult).toBe(false);
+
     const guesses = gtbService.getGuesses();
     expect(guesses.length).toBe(1);
-    expect(guesses[0].guess).toBe(255);
+    expect(guesses[0].guess).toBe(200); // Original prediction of 200 is preserved!
+
+    // Verify warning reply queued for chat
+    expect(
+      botReplies.some(
+        (r) => r.includes('already predicted $200.00') && r.includes('cannot be changed')
+      )
+    ).toBe(true);
   });
 
   it('accurately resolves closest prediction to the typed balance', () => {

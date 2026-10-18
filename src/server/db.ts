@@ -447,19 +447,14 @@ export const dbOps = {
 
   upsertGtbGuess(db: DatabaseSync, guess: GtbGuess): { isNew: boolean; guess: GtbGuess } {
     const existing = db.prepare(`
-      SELECT id FROM gtb_guesses WHERE event_id = ? AND kick_user_id = ?
+      SELECT * FROM gtb_guesses WHERE event_id = ? AND kick_user_id = ?
     `).get(guess.eventId, guess.kickUserId) as any;
 
     if (existing) {
-      db.prepare(`
-        UPDATE gtb_guesses
-        SET guess = ?, username = ?, updated_at = ?
-        WHERE event_id = ? AND kick_user_id = ?
-      `).run(guess.guess, guess.username, guess.updatedAt, guess.eventId, guess.kickUserId);
-
+      // Viewer already guessed: predictions are final and cannot be changed
       return {
         isNew: false,
-        guess: { ...guess, id: existing.id },
+        guess: mapGtbGuessRow(existing),
       };
     } else {
       db.prepare(`
