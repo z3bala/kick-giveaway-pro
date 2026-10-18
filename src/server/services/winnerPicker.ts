@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import type { Participant, DrawAnimationData, DrawRollCard } from '../../shared/types.js';
+import { pickWeightedWheelIndex } from '../../shared/wheelOdds.js';
 
 export interface WinnerSelectionResult {
   winner: Participant;
@@ -43,7 +44,10 @@ export function selectWinnerUniformly(
   if (wheelConfig?.enabled && wheelConfig.segments && wheelConfig.segments.length > 0) {
     wheelEnabled = true;
     wheelSegments = wheelConfig.segments;
-    wheelTargetIndex = crypto.randomInt(0, wheelSegments.length);
+    // Weighted selection: "the higher the prize the lower the chance is"
+    // Generate uniform cryptographic float [0, 1) with zero modulo bias
+    const cryptoRand = crypto.randomBytes(4).readUInt32BE(0) / 0x100000000;
+    wheelTargetIndex = pickWeightedWheelIndex(wheelSegments, cryptoRand);
     rolledPrize = wheelSegments[wheelTargetIndex];
     wheelDurationSec = wheelConfig.durationSec || 4.2;
   }

@@ -176,10 +176,14 @@ export class GiveawayService {
     wheelEnabled?: boolean,
     wheelAmounts?: string[]
   ): Giveaway {
+    if (this.activeGiveaway && (this.activeGiveaway.status === 'open' || this.activeGiveaway.status === 'drawing')) {
+      throw new Error('An active giveaway is currently running. Please close or complete it first.');
+    }
+
     const now = new Date().toISOString();
-    // Auto-archive any previous active or draft giveaway cleanly
+    // Auto-archive any previous draft or closed giveaway cleanly
     try {
-      this.db.prepare(`UPDATE giveaways SET status = 'completed', completed_at = ? WHERE status IN ('draft', 'open', 'closed', 'drawing')`).run(now);
+      this.db.prepare(`UPDATE giveaways SET status = 'completed', completed_at = ? WHERE status IN ('draft', 'closed')`).run(now);
     } catch (e: any) {
       console.warn('[GiveawayService] Note archiving previous giveaways:', e.message);
     }

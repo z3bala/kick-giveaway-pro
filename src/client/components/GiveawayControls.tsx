@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import type { Giveaway, Participant, OverlaySettings } from '../../shared/types.js';
+import { calculateWheelOdds } from '../../shared/wheelOdds.js';
 
 interface GiveawayControlsProps {
   giveaway: Giveaway | null;
@@ -623,17 +624,23 @@ export const GiveawayControls: React.FC<GiveawayControlsProps> = ({
                     ))}
                   </div>
 
-                  {/* Live Wedge Preview */}
-                  <div className="flex items-center space-x-1.5 flex-wrap gap-1 pt-1">
-                    <span className="text-[10px] uppercase font-bold text-neutral-500">Slices:</span>
-                    {parseAmounts(wheelAmountsInput).map((amt, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-0.5 rounded-full bg-[#53fc18]/15 border border-[#53fc18]/30 text-[#53fc18] font-bold text-[11px] font-mono"
-                      >
-                        {amt}
-                      </span>
-                    ))}
+                  {/* Live Wedge Preview with Weighted Odds */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center space-x-1.5 flex-wrap gap-1">
+                      <span className="text-[10px] uppercase font-bold text-neutral-400">Weighted Odds:</span>
+                      {calculateWheelOdds(parseAmounts(wheelAmountsInput)).map((item, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-0.5 rounded-full bg-[#53fc18]/15 border border-[#53fc18]/30 text-[#53fc18] font-bold text-[11px] font-mono flex items-center space-x-1"
+                        >
+                          <span>{item.segment}</span>
+                          <span className="text-neutral-300 font-sans text-[10px] font-semibold">({item.formattedPercentage})</span>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="text-[10px] text-neutral-400 font-sans">
+                      ⚡ Weighted odds: the higher the prize amount, the lower the chance is to roll.
+                    </div>
                   </div>
                 </div>
               )}

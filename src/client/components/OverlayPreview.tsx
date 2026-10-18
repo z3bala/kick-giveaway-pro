@@ -20,6 +20,7 @@ import type { OverlaySettings, DrawAnimationData } from '../../shared/types.js';
 import { NameRoll } from '../overlay/NameRollRoll.js';
 import { WinnerCard } from '../overlay/WinnerCard.js';
 import { OverlayBadge } from '../overlay/OverlayBadge.js';
+import { calculateWheelOdds, pickWeightedWheelIndex } from '../../shared/wheelOdds.js';
 
 interface OverlayPreviewProps {
   settings: OverlaySettings;
@@ -76,8 +77,8 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
     const wheelSegments = settings.wheelAmounts && settings.wheelAmounts.length > 0
       ? settings.wheelAmounts
       : ['1$', '2$', '3$', '5$', '10$'];
-    // Randomly select a prize segment for each test spin
-    const targetWheelIdx = Math.floor(Math.random() * wheelSegments.length);
+    // Weighted selection: higher prize = lower chance
+    const targetWheelIdx = pickWeightedWheelIndex(wheelSegments);
     const rolledPrize = wheelSegments[targetWheelIdx] || wheelSegments[0];
 
     const testData: DrawAnimationData = {
@@ -652,6 +653,24 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                       {preset.join(', ')}
                     </button>
                   ))}
+                </div>
+
+                {/* Weighted Odds Breakdown */}
+                <div className="pt-2 border-t border-white/[0.06] space-y-1">
+                  <div className="text-[10px] uppercase font-bold text-neutral-400 flex items-center justify-between">
+                    <span>Wheel Odds (Higher Prize = Lower Chance)</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5 flex-wrap gap-1">
+                    {calculateWheelOdds(settings.wheelAmounts || ['1$', '2$', '3$', '5$', '10$']).map((item, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 rounded-full bg-[#53fc18]/10 border border-[#53fc18]/25 text-[#53fc18] font-mono text-[10px] flex items-center space-x-1"
+                      >
+                        <strong className="font-black">{item.segment}</strong>
+                        <span className="text-neutral-300 font-sans text-[9px] font-semibold">{item.formattedPercentage}</span>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
