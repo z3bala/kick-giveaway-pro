@@ -1,10 +1,12 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import type { Server as HTTPServer } from 'node:http';
 import type { GiveawayService } from '../services/giveawayService.js';
+import type { GtbService } from '../services/gtbService.js';
 
 export class SocketManager {
   private io: SocketIOServer;
   private giveawayService: GiveawayService | null = null;
+  private gtbService: GtbService | null = null;
 
   constructor(server: HTTPServer) {
     this.io = new SocketIOServer(server, {
@@ -21,6 +23,10 @@ export class SocketManager {
     this.giveawayService = service;
   }
 
+  public setGtbService(service: GtbService): void {
+    this.gtbService = service;
+  }
+
   private setupListeners(): void {
     this.io.on('connection', (socket: Socket) => {
       const clientType = socket.handshake.query.type || 'dashboard';
@@ -29,13 +35,16 @@ export class SocketManager {
       // Send initial state snapshot immediately to newly connected client
       if (this.giveawayService) {
         const state = this.giveawayService.getStateSnapshot();
-        socket.emit('state.sync', state);
+        const gtb = this.gtbService ? this.gtbService.getStateSnapshot() : undefined;
+        socket.emit('state.sync', { ...state, gtb });
       }
 
       // Handle client requesting a manual sync
       socket.on('request.sync', () => {
         if (this.giveawayService) {
-          socket.emit('state.sync', this.giveawayService.getStateSnapshot());
+          const state = this.giveawayService.getStateSnapshot();
+          const gtb = this.gtbService ? this.gtbService.getStateSnapshot() : undefined;
+          socket.emit('state.sync', { ...state, gtb });
         }
       });
 

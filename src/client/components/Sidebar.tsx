@@ -13,12 +13,14 @@ import {
   Radio,
   Lock,
   Unlock,
+  Coins,
 } from 'lucide-react';
 
 export type TabType =
   | 'overview'
   | 'controls'
   | 'participants'
+  | 'gtb'
   | 'overlay'
   | 'simulator'
   | 'history'
@@ -29,6 +31,8 @@ interface SidebarProps {
   onSelectTab: (tab: TabType) => void;
   participantCount: number;
   giveawayStatus?: string;
+  gtbStatus?: string;
+  gtbGuessCount?: number;
   kickChannelSlug?: string;
   isKickConnected?: boolean;
   overlayToken?: string;
@@ -85,6 +89,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Users,
       badge: participantCount > 0 ? `${participantCount}` : null,
       badgeColor: 'bg-white/10 text-white/90 border border-white/10',
+    },
+    {
+      id: 'gtb' as TabType,
+      label: 'Guess The Balance',
+      icon: Coins,
+      badge:
+        gtbStatus === 'open'
+          ? 'Live'
+          : gtbStatus === 'resolved'
+          ? 'Winner'
+          : gtbGuessCount && gtbGuessCount > 0
+          ? `${gtbGuessCount}`
+          : null,
+      badgeColor:
+        gtbStatus === 'open'
+          ? 'bg-[#53fc18]/20 text-[#53fc18] border border-[#53fc18]/40'
+          : gtbStatus === 'resolved'
+          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+          : 'bg-white/10 text-white/70',
     },
     {
       id: 'overlay' as TabType,

@@ -1,4 +1,4 @@
-import type { Giveaway, Participant, OverlaySettings, AppSettings, StateSyncPayload } from '../../shared/types.js';
+import type { Giveaway, Participant, OverlaySettings, AppSettings, StateSyncPayload, GtbEvent, GtbGuess, GtbStatePayload } from '../../shared/types.js';
 
 class ApiClient {
   private getHeaders(): HeadersInit {
@@ -217,6 +217,71 @@ class ApiClient {
     if (!res.ok) throw new Error('Failed to fetch giveaway history');
     const json = await res.json();
     return json.history || [];
+  }
+
+  // ---------------- Guess The Balance (GTB) Operations ----------------
+  public async getGtbStatus(): Promise<GtbStatePayload> {
+    const res = await fetch('/api/gtb/status');
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to fetch GTB status');
+    return json;
+  }
+
+  public async createGtbEvent(data: { title: string; prize: string; keyword?: string }): Promise<GtbEvent> {
+    const res = await fetch('/api/gtb/create', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to create GTB event');
+    return json.event;
+  }
+
+  public async closeGtbEvent(eventId?: string): Promise<GtbEvent> {
+    const res = await fetch('/api/gtb/close', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ eventId }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to close GTB event');
+    return json.event;
+  }
+
+  public async resolveGtbEvent(finalBalance: number, eventId?: string): Promise<{
+    winner: GtbGuess;
+    finalBalance: number;
+    rankedGuesses: GtbGuess[];
+    event: GtbEvent;
+  }> {
+    const res = await fetch('/api/gtb/resolve', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ finalBalance, eventId }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to resolve closest prediction');
+    return json;
+  }
+
+  public async resetGtbEvent(): Promise<void> {
+    const res = await fetch('/api/gtb/reset', {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to reset GTB event');
+  }
+
+  public async addManualGtbGuess(username: string, guess: number): Promise<void> {
+    const res = await fetch('/api/gtb/guess/manual', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ username, guess }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to submit guess');
   }
 }
 

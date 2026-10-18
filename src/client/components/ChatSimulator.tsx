@@ -140,6 +140,29 @@ export const ChatSimulator: React.FC<ChatSimulatorProps> = ({
     ]);
   };
 
+  const simulateGtbGuess = async (amount: number) => {
+    const fakeViewer = `StakeGuesser_${Math.floor(Math.random() * 899) + 100}`;
+    const cmd = `!gtb ${amount}`;
+    await onSimulateChat(fakeViewer, cmd);
+    setChatLogs((prev) => [
+      ...prev,
+      {
+        username: fakeViewer,
+        message: cmd,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        type: 'user',
+      },
+    ]);
+  };
+
+  const simulateGtbBatch = async () => {
+    const sampleGuesses = [120, 245, 260, 275, 310, 180, 255.5];
+    for (const amt of sampleGuesses) {
+      await simulateGtbGuess(amt);
+      await new Promise((r) => setTimeout(r, 80));
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-5xl pb-12">
       {/* Header */}
@@ -234,10 +257,38 @@ export const ChatSimulator: React.FC<ChatSimulatorProps> = ({
               <span className="text-[11px] font-mono text-neutral-400">Filter</span>
             </button>
 
+            {/* GTB Simulation Buttons */}
+            <div className="pt-2 border-t border-white/[0.08] space-y-2">
+              <div className="text-[11px] font-bold text-neutral-300 uppercase tracking-wider flex items-center space-x-1.5">
+                <span>🎰</span>
+                <span>Guess The Balance (Stake.com)</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => simulateGtbGuess(260)}
+                  disabled={isSending}
+                  className="py-2 px-2.5 rounded-xl text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 hover:text-white flex items-center justify-center space-x-1 transition-all cursor-pointer"
+                >
+                  <span>!gtb 260</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={simulateGtbBatch}
+                  disabled={isSending}
+                  className="py-2 px-2.5 rounded-xl text-xs font-semibold bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 hover:text-white flex items-center justify-center space-x-1 transition-all cursor-pointer"
+                >
+                  <span>Batch 7 Guesses</span>
+                </button>
+              </div>
+            </div>
+
             {giveaway?.status !== 'open' && (
               <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center space-x-2 mt-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>Giveaway must be open to accept entries.</span>
+                <span>Giveaway must be open to accept giveaway keyword entries.</span>
               </div>
             )}
           </div>

@@ -13,6 +13,8 @@ import { SocketManager } from './sockets/socketManager.js';
 import { createGiveawayRouter } from './routes/giveaway.js';
 import { createKickRouter } from './routes/kick.js';
 import { createSettingsRouter } from './routes/settings.js';
+import { GtbService } from './services/gtbService.js';
+import { createGtbRouter } from './routes/gtb.js';
 
 // Load environment variables
 dotenv.config();
@@ -60,11 +62,23 @@ export function createApp() {
     emitEvent: (event: string, data: any) => socketManager.broadcast(event, data),
   });
 
-  // Link GiveawayService with SocketManager for on-connect sync
+  // Initialize Guess The Balance (GTB) Service
+  const gtbService = new GtbService(db, kickBot, {
+    emitEvent: (event: string, data: any) => socketManager.broadcast(event, data),
+  });
+
+  // Forward incoming chat messages to GTB service
+  kickBot.on('chatMessage', (msg) => {
+    gtbService.handleChatMessage(msg);
+  });
+
+  // Link Services with SocketManager for on-connect sync
   socketManager.setGiveawayService(giveawayService);
+  socketManager.setGtbService(gtbService);
 
   // Mount API Routers
   app.use('/api/giveaway', createGiveawayRouter(giveawayService));
+  app.use('/api/gtb', createGtbRouter(gtbService));
   app.use('/api/kick', createKickRouter(kickBot, giveawayService));
   app.use('/api/settings', createSettingsRouter(giveawayService));
 

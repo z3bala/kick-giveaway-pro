@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import type { Giveaway, Participant, OverlaySettings, AppSettings } from '../shared/types.js';
+import type { Giveaway, Participant, OverlaySettings, AppSettings, GtbEvent, GtbGuess, GtbStatus } from '../shared/types.js';
 
 let dbInstance: DatabaseSync | null = null;
 
@@ -76,6 +76,36 @@ export function initDatabase(db: DatabaseSync): void {
       timestamp TEXT NOT NULL,
       is_bot INTEGER NOT NULL DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS gtb_events (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      prize TEXT NOT NULL,
+      keyword TEXT NOT NULL DEFAULT '!gtb',
+      status TEXT NOT NULL DEFAULT 'open',
+      final_balance REAL,
+      winner_id TEXT,
+      winner_username TEXT,
+      winner_guess REAL,
+      winner_diff REAL,
+      created_at TEXT NOT NULL,
+      closed_at TEXT,
+      resolved_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS gtb_guesses (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL,
+      kick_user_id TEXT NOT NULL,
+      username TEXT NOT NULL,
+      guess REAL NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(event_id, kick_user_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_gtb_guesses_event
+      ON gtb_guesses (event_id);
   `);
 
   try { db.exec(`ALTER TABLE giveaways ADD COLUMN wheel_enabled INTEGER DEFAULT 0;`); } catch {}
@@ -305,6 +335,159 @@ export const dbOps = {
       ORDER BY timestamp DESC 
       LIMIT ?
     `).all(limit) as any[];
+  },
+
+  // ---------------- Guess The Balance (GTB) ----------------
+  getActiveGtbEvent(db: DatabaseSync): GtbEvent | null {
+    const row = db.prepare(`
+      SELECT e.*, (SELECT COUNT(*) FROM gtb_guesses g WHERE g.event_id = e.id) as guess_count
+      FROM gtb_events e
+      WHERE e.status IN ('open', 'closed')
+      ORDER BY e.created_at DESC
+      LIMIT 1
+    `).get() as any;
+    if (!row) return null;
+    return mapGtbEventRow(row);
+  },
+
+  getLatestGtbEvent(db: DatabaseSync): GtbEvent | null {
+    const row = db.prepare(`
+      SELECT e.*, (SELECT COUNT(*) FROM gtb_guesses g WHERE g.event_id = e.id) as guess_count
+      FROM gtb_events e
+      ORDER BY e.created_at DESC
+      LIMIT 1
+    `).get() as any;
+    if (!row) return null;
+    return mapGtbEventRow(row);
+  },
+
+  getGtbEventById(db: DatabaseSync, id: string): GtbEvent | null {
+    const row = db.prepare(`
+      SELECT e.*, (SELECT COUNT(*) FROM gtb_guesses g WHERE g.event_id = e.id) as guess_count
+      FROM gtb_events e
+      WHERE e.id = ?
+    `).get(id) as any;
+    if (!row) return null;
+    return mapGtbEventRow(row);
+  },
+
+  createGtbEvent(db: DatabaseSync, event: Omit<GtbEvent, 'guessCount'>): GtbEvent {
+    db.prepare(`
+      INSERT INTO gtb_events (id, title, prize, keyword, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(event.id, event.title, event.prize, event.keyword, event.status, event.createdAt);
+
+    return {
+      ...event,
+      finalBalance: null,
+      winnerId: null,
+      winnerUsername: null,
+      winnerGuess: null,
+      winnerDiff: null,
+      guessCount: 0,
+      closedAt: null,
+      resolvedAt: null,
+    };
+  },
+
+  updateGtbEventStatus(
+    db: DatabaseSync,
+    id: string,
+    status: GtbStatus,
+    timestamps?: { closedAt?: string; resolvedAt?: string }
+  ): void {
+    const parts = ['status = ?'];
+    const values: any[] = [status];
+
+    if (timestamps?.closedAt) {
+      parts.push('closed_at = ?');
+      values.push(timestamps.closedAt);
+    }
+    if (timestamps?.resolvedAt) {
+      parts.push('resolved_at = ?');
+      values.push(timestamps.resolvedAt);
+    }
+
+    values.push(id);
+    db.prepare(`UPDATE gtb_events SET ${parts.join(', ')} WHERE id = ?`).run(...values);
+  },
+
+  resolveGtbEvent(
+    db: DatabaseSync,
+    id: string,
+    finalBalance: number,
+    winnerId: string,
+    winnerUsername: string,
+    winnerGuess: number,
+    winnerDiff: number
+  ): void {
+    const now = new Date().toISOString();
+    db.prepare(`
+      UPDATE gtb_events
+      SET status = 'resolved',
+          final_balance = ?,
+          winner_id = ?,
+          winner_username = ?,
+          winner_guess = ?,
+          winner_diff = ?,
+          resolved_at = ?
+      WHERE id = ?
+    `).run(finalBalance, winnerId, winnerUsername, winnerGuess, winnerDiff, now, id);
+  },
+
+  getGtbGuesses(db: DatabaseSync, eventId: string): GtbGuess[] {
+    const rows = db.prepare(`
+      SELECT * FROM gtb_guesses
+      WHERE event_id = ?
+      ORDER BY updated_at ASC
+    `).all(eventId) as any[];
+
+    return rows.map(mapGtbGuessRow);
+  },
+
+  upsertGtbGuess(db: DatabaseSync, guess: GtbGuess): { isNew: boolean; guess: GtbGuess } {
+    const existing = db.prepare(`
+      SELECT id FROM gtb_guesses WHERE event_id = ? AND kick_user_id = ?
+    `).get(guess.eventId, guess.kickUserId) as any;
+
+    if (existing) {
+      db.prepare(`
+        UPDATE gtb_guesses
+        SET guess = ?, username = ?, updated_at = ?
+        WHERE event_id = ? AND kick_user_id = ?
+      `).run(guess.guess, guess.username, guess.updatedAt, guess.eventId, guess.kickUserId);
+
+      return {
+        isNew: false,
+        guess: { ...guess, id: existing.id },
+      };
+    } else {
+      db.prepare(`
+        INSERT INTO gtb_guesses (id, event_id, kick_user_id, username, guess, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        guess.id,
+        guess.eventId,
+        guess.kickUserId,
+        guess.username,
+        guess.guess,
+        guess.createdAt,
+        guess.updatedAt
+      );
+
+      return { isNew: true, guess };
+    }
+  },
+
+  getRecentGtbEvents(db: DatabaseSync, limit = 10): GtbEvent[] {
+    const rows = db.prepare(`
+      SELECT e.*, (SELECT COUNT(*) FROM gtb_guesses g WHERE g.event_id = e.id) as guess_count
+      FROM gtb_events e
+      ORDER BY e.created_at DESC
+      LIMIT ?
+    `).all(limit) as any[];
+
+    return rows.map(mapGtbEventRow);
   }
 };
 
@@ -343,5 +526,36 @@ function mapParticipantRow(row: any): Participant {
     username: row.username,
     joinedAt: row.joined_at,
     status: row.status,
+  };
+}
+
+function mapGtbEventRow(row: any): GtbEvent {
+  return {
+    id: row.id,
+    title: row.title,
+    prize: row.prize,
+    keyword: row.keyword || '!gtb',
+    status: row.status as GtbStatus,
+    finalBalance: row.final_balance !== null && row.final_balance !== undefined ? Number(row.final_balance) : null,
+    winnerId: row.winner_id,
+    winnerUsername: row.winner_username,
+    winnerGuess: row.winner_guess !== null && row.winner_guess !== undefined ? Number(row.winner_guess) : null,
+    winnerDiff: row.winner_diff !== null && row.winner_diff !== undefined ? Number(row.winner_diff) : null,
+    guessCount: Number(row.guess_count || 0),
+    createdAt: row.created_at,
+    closedAt: row.closed_at,
+    resolvedAt: row.resolved_at,
+  };
+}
+
+function mapGtbGuessRow(row: any): GtbGuess {
+  return {
+    id: row.id,
+    eventId: row.event_id,
+    kickUserId: row.kick_user_id,
+    username: row.username,
+    guess: Number(row.guess),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }

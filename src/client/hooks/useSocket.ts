@@ -8,6 +8,8 @@ import type {
   AppSettings,
   DrawAnimationData,
   StateSyncPayload,
+  GtbEvent,
+  GtbGuess,
 } from '../../shared/types.js';
 
 export interface UseSocketOptions {
@@ -44,6 +46,8 @@ export function useSocket(options: UseSocketOptions = {}) {
   const [activeDraw, setActiveDraw] = useState<DrawAnimationData | null>(null);
   const [history, setHistory] = useState<Giveaway[]>([]);
   const [recentJoined, setRecentJoined] = useState<Participant | null>(null);
+  const [gtbEvent, setGtbEvent] = useState<GtbEvent | null>(null);
+  const [gtbGuesses, setGtbGuesses] = useState<GtbGuess[]>([]);
 
   const socketRef = useRef<Socket | null>(null);
 
@@ -78,6 +82,10 @@ export function useSocket(options: UseSocketOptions = {}) {
       setOverlaySettings(payload.overlaySettings);
       setActiveDraw(payload.activeDraw);
       setHistory(payload.recentHistory || []);
+      if (payload.gtb) {
+        setGtbEvent(payload.gtb.activeEvent || null);
+        setGtbGuesses(payload.gtb.guesses || []);
+      }
     });
 
     socket.on('giveaway.created', (gw: Giveaway) => {
@@ -139,6 +147,41 @@ export function useSocket(options: UseSocketOptions = {}) {
       setOverlaySettings(settings);
     });
 
+    // GTB Socket Events
+    socket.on('gtb.created', (event: GtbEvent) => {
+      setGtbEvent(event);
+      setGtbGuesses([]);
+    });
+
+    socket.on('gtb.closed', (event: GtbEvent) => {
+      setGtbEvent(event);
+    });
+
+    socket.on('gtb.guessAdded', (data: { guess: GtbGuess; isNew: boolean; event: GtbEvent }) => {
+      setGtbEvent(data.event);
+      setGtbGuesses((prev) => {
+        const idx = prev.findIndex((g) => g.kickUserId === data.guess.kickUserId);
+        if (idx !== -1) {
+          const next = [...prev];
+          next[idx] = data.guess;
+          return next;
+        }
+        return [...prev, data.guess];
+      });
+    });
+
+    socket.on('gtb.resolved', (data: { event: GtbEvent; winner: GtbGuess; topGuesses: GtbGuess[] }) => {
+      setGtbEvent(data.event);
+      if (data.topGuesses && data.topGuesses.length > 0) {
+        setGtbGuesses(data.topGuesses);
+      }
+    });
+
+    socket.on('gtb.reset', () => {
+      setGtbEvent(null);
+      setGtbGuesses([]);
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -157,6 +200,8 @@ export function useSocket(options: UseSocketOptions = {}) {
     activeDraw,
     history,
     recentJoined,
+    gtbEvent,
+    gtbGuesses,
     requestSync,
   };
 }

@@ -11,6 +11,7 @@ import { OverlayPreview } from './components/OverlayPreview.js';
 import { ChatSimulator } from './components/ChatSimulator.js';
 import { GiveawayHistory } from './components/GiveawayHistory.js';
 import { SettingsView } from './components/SettingsView.js';
+import { GuessTheBalance } from './components/GuessTheBalance.js';
 import { ConfirmModal, ManualAddModal, AdminAuthModal } from './components/Modals.js';
 import type { Participant, AppSettings } from '../shared/types.js';
 
@@ -30,6 +31,8 @@ export const App: React.FC = () => {
     overlaySettings,
     activeDraw,
     history,
+    gtbEvent,
+    gtbGuesses,
   } = useSocket({ clientType: 'dashboard' });
 
   const [currentTab, setCurrentTab] = useState<TabType>('overview');
@@ -161,10 +164,32 @@ export const App: React.FC = () => {
     setAdminSecret(secret);
   };
 
+  // GTB Event Handlers
+  const handleCreateGtb = async (title: string, prize: string, keyword?: string) => {
+    await api.createGtbEvent({ title, prize, keyword });
+  };
+
+  const handleCloseGtb = async () => {
+    await api.closeGtbEvent();
+  };
+
+  const handleResolveGtb = async (finalBalance: number) => {
+    await api.resolveGtbEvent(finalBalance);
+  };
+
+  const handleResetGtb = async () => {
+    await api.resetGtbEvent();
+  };
+
+  const handleManualGtb = async (username: string, guess: number) => {
+    await api.addManualGtbGuess(username, guess);
+  };
+
   const tabTitles: Record<TabType, string> = {
     overview: 'Dashboard',
     controls: 'Giveaway Controls',
     participants: 'Participants Pool',
+    gtb: 'Guess The Balance (Stake.com)',
     overlay: 'OBS Overlay Studio',
     simulator: 'Chat Simulator',
     history: 'History & Winners',
@@ -179,6 +204,8 @@ export const App: React.FC = () => {
         onSelectTab={setCurrentTab}
         participantCount={participants.length}
         giveawayStatus={giveaway?.status}
+        gtbStatus={gtbEvent?.status}
+        gtbGuessCount={gtbGuesses.length}
         kickChannelSlug={kickBot.channelSlug || appSettings.kickChannelSlug}
         isKickConnected={kickBot.status === 'connected'}
         overlayToken={appSettings.overlayToken}
@@ -241,6 +268,19 @@ export const App: React.FC = () => {
                 giveawayId={giveaway?.id}
                 onRemoveParticipant={handleRemoveParticipant}
                 onOpenManualAddModal={() => setIsManualAddModalOpen(true)}
+              />
+            )}
+
+            {currentTab === 'gtb' && (
+              <GuessTheBalance
+                gtbEvent={gtbEvent}
+                gtbGuesses={gtbGuesses}
+                onCreateEvent={handleCreateGtb}
+                onCloseEvent={handleCloseGtb}
+                onResolveEvent={handleResolveGtb}
+                onResetEvent={handleResetGtb}
+                onManualGuess={handleManualGtb}
+                accentColor={overlaySettings.accentColor}
               />
             )}
 

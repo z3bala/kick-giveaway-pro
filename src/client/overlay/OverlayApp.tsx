@@ -3,11 +3,13 @@ import { useSocket } from '../hooks/useSocket.js';
 import { NameRoll } from './NameRollRoll.js';
 import { WinnerCard } from './WinnerCard.js';
 import { OverlayBadge } from './OverlayBadge.js';
+import { GtbOverlayCard } from './GtbOverlayCard.js';
 import { api } from '../utils/api.js';
 
 export const OverlayApp: React.FC = () => {
   const queryParams = new URLSearchParams(window.location.search);
   const token = queryParams.get('token') || undefined;
+  const overlayType = queryParams.get('type') || undefined; // 'gtb' or standard
 
   const {
     connected,
@@ -15,6 +17,7 @@ export const OverlayApp: React.FC = () => {
     overlaySettings,
     activeDraw,
     recentJoined,
+    gtbEvent,
   } = useSocket({ clientType: 'overlay', token });
 
   const [localCompletedWinner, setLocalCompletedWinner] = useState<any>(null);
@@ -166,8 +169,34 @@ export const OverlayApp: React.FC = () => {
             />
           </div>
         </div>
+      ) : gtbEvent && (gtbEvent.status === 'open' || gtbEvent.status === 'closed') ? (
+        /* State 4: Guess The Balance Live Banner */
+        <div className={`fixed z-30 flex pointer-events-none ${posConfig.classes}`}>
+          <div
+            className="flex flex-col pointer-events-auto"
+            style={{
+              transform: `scale(${scale})`,
+              transformOrigin: posConfig.origin,
+            }}
+          >
+            <GtbOverlayCard gtbEvent={gtbEvent} settings={overlaySettings} />
+          </div>
+        </div>
+      ) : gtbEvent && gtbEvent.status === 'resolved' ? (
+        /* State 5: Guess The Balance Winner Announcement */
+        <div className="fixed inset-x-0 bottom-10 z-50 flex items-center justify-center pointer-events-none animate-fade-in">
+          <div
+            className="pointer-events-auto flex items-center justify-center"
+            style={{
+              transform: `scale(${scale})`,
+              transformOrigin: 'bottom center',
+            }}
+          >
+            <GtbOverlayCard gtbEvent={gtbEvent} settings={overlaySettings} />
+          </div>
+        </div>
       ) : (
-        /* State 4: Idle / Standby (Transparent on stream) */
+        /* State 6: Idle / Standby (Transparent on stream) */
         <div className="absolute bottom-3 right-3 opacity-0 hover:opacity-20 transition-opacity text-[10px] text-neutral-500 font-mono">
           OBS Overlay Connected • Standby
         </div>

@@ -103,6 +103,7 @@ export interface StateSyncPayload {
   overlaySettings: OverlaySettings;
   activeDraw: DrawAnimationData | null;
   recentHistory: Giveaway[];
+  gtb?: GtbStatePayload;
 }
 
 export interface ChatMessage {
@@ -112,3 +113,41 @@ export interface ChatMessage {
   timestamp: string;
   isBot?: boolean;
 }
+
+// ---------------- Guess The Balance (GTB) Event Types ----------------
+export type GtbStatus = 'open' | 'closed' | 'resolved';
+
+export interface GtbGuess {
+  id: string;
+  eventId: string;
+  kickUserId: string;
+  username: string;
+  guess: number;
+  diff?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GtbEvent {
+  id: string;
+  title: string;
+  prize: string;
+  keyword: string;
+  status: GtbStatus;
+  finalBalance: number | null;
+  winnerId: string | null;
+  winnerUsername: string | null;
+  winnerGuess: number | null;
+  winnerDiff: number | null;
+  guessCount: number;
+  createdAt: string;
+  closedAt: string | null;
+  resolvedAt: string | null;
+}
+
+export interface GtbStatePayload {
+  activeEvent: GtbEvent | null;
+  guesses: GtbGuess[];
+  recentEvents: GtbEvent[];
+}
+

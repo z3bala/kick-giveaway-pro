@@ -66,3 +66,20 @@ export const SimulateChatSchema = z.object({
   message: z.string().min(1).max(500),
   userId: z.string().optional(),
 });
+
+export const CreateGtbEventSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(100),
+  prize: z.string().min(1, 'Prize is required').max(100),
+  keyword: z.string().min(1).max(30).regex(/^![a-zA-Z0-9_-]+$/).optional(),
+});
+
+export const ResolveGtbEventSchema = z.object({
+  eventId: z.string().optional(),
+  finalBalance: z.number().min(0, 'Balance must be non-negative'),
+});
+
+export const ManualGtbGuessSchema = z.object({
+  username: z.string().min(1).max(40),
+  guess: z.number().min(0, 'Guess must be non-negative'),
+});
+
